@@ -1,0 +1,20 @@
+# Directories #
+################################################################################
+bin
+build
+include
+/**/x64
+/**/GeneratedFiles
+
+# Files #
+################################################################################
+*.qmake.stash
+/**/Makefile*
+/**/*.suo
+/**/*.db
+/**/*.vcxproj.*
+/**/*.vcxproj
+/**/*.sln
+*pro.user
+/**/*plugin_import.cpp
+clean
