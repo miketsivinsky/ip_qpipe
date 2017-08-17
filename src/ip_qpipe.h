@@ -4,6 +4,8 @@
 #define IP_QPIPE_H
 
 #include <cstdint>
+#include <map>
+
 #include <QSharedMemory>
 
 #include "ip_qpipe_def.h"
@@ -21,6 +23,7 @@ class T_IP_PipeView
         bool isPipeOk() const { return mStatus == IP_QPIPE_LIB::Ok; }
         IP_QPIPE_LIB::TStatus error() const { return mLastError; }
         virtual bool transferBuf(uint8_t* buf, uint32_t& bufSize) = 0;
+        QString pipeKey() const { return mSharedMemory.key(); }
 
     protected:
         class TLock
@@ -94,6 +97,31 @@ class T_IP_PipeViewTx : public T_IP_PipeView
 
     protected:
         void advanceWriteIdx(TPipeControlBlock& pipeControl);
+};
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+class T_IP_PipeViewPool
+{
+    public:
+        static bool isPipeViewTxExist(const QString& key) { return (getPipeView(key,txPool()) != 0); }
+        static IP_QPIPE_LIB::TStatus createPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum);
+
+    private:
+        typedef std::map<QString,T_IP_PipeView*> T_IP_PipeViewPoolMap;
+
+        static T_IP_PipeViewPool& instance() {
+            static T_IP_PipeViewPool pool;
+            return pool;
+        }
+
+        static T_IP_PipeViewPoolMap& txPool() { return instance().mTxPool; }
+
+        T_IP_PipeViewPool() : mTxPool() { }
+        ~T_IP_PipeViewPool();
+        static T_IP_PipeView* getPipeView(const QString& key, T_IP_PipeViewPoolMap& pool);
+
+        T_IP_PipeViewPoolMap mTxPool;
 };
 
 #endif /* IP_QPIPE_H */

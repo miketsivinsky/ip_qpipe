@@ -156,3 +156,42 @@ void T_IP_PipeViewTx::advanceWriteIdx(TPipeControlBlock& pipeControl)
         ++pipeControl.chunkFilled;
     }
 }
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+T_IP_PipeViewPool::~T_IP_PipeViewPool()
+{
+    for(auto pipeViewTx = txPool().begin(); pipeViewTx != txPool().end(); ++pipeViewTx) {
+        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
+            qDebug() << "[INFO] [T_IP_PipeViewPool destructor] tx pipe with key:" << pipeViewTx->first << "will be deleted";
+        #endif
+        delete pipeViewTx->second;
+    }
+}
+
+//------------------------------------------------------------------------------
+T_IP_PipeView* T_IP_PipeViewPool::getPipeView(const QString& key, T_IP_PipeViewPoolMap& pool)
+{
+    auto pipeView = pool.find(key);
+    return (pipeView == pool.end()) ? 0 : pipeView->second;
+}
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus T_IP_PipeViewPool::createPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum)
+{
+    if(isPipeViewTxExist(key)) {
+        return IP_QPIPE_LIB::TxPipeExistError;
+    }
+
+    T_IP_PipeViewTx* pipeView = new T_IP_PipeViewTx(key,chunkSize,chunkNum);
+    if(!pipeView->isPipeOk()) {
+        IP_QPIPE_LIB::TStatus err = pipeView->error();
+        delete pipeView;
+        return err;
+    }
+    txPool().insert(std::pair<QString,T_IP_PipeView*>(key,pipeView));
+    return IP_QPIPE_LIB::Ok;
+}
