@@ -8,7 +8,7 @@
 int main() {
 
     //---
-    printf("[INFO] test_rx_pipe: %d\n",IP_QPIPE_LIB::init());
+    printf("[INFO] test_rx_pipe\n");
 
     return 0;
 }
