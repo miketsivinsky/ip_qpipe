@@ -8,8 +8,9 @@
 
 namespace IP_QPIPE_LIB
 {
-	//------------------------------------------------------------------------------
-        IP_QPIPE_DLL_API bool testTx(const char* /*key*/, uint32_t /*chunkSize*/, uint32_t /*chunkNum*/) {
-	    return true;
-	}
+    //------------------------------------------------------------------------------
+    IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewTx(const char* key, uint32_t chunkSize, uint32_t chunkNum)
+    {
+        return TPipeViewPool::createPipeViewTx(QString::fromLocal8Bit(key), chunkSize, chunkNum);
+    }
 }
