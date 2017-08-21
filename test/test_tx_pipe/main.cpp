@@ -7,14 +7,18 @@
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-int main() {
-    printf("[INFO] test_tx_pipe\n");
+int main(int argc, char* argv[]) {
+
+    unsigned long sTime = 0;
+    if(argc > 1) {
+        sTime = atol(argv[1]);
+    }
 
     //---
     IP_QPIPE_LIB::TStatus status1 = IP_QPIPE_LIB::createPipeViewTx("slon",1024,32);
     printf("status1: %1d\n",status1);
 
-    QThread::sleep(1);
+    QThread::sleep(sTime);
     return 0;
 }
 
