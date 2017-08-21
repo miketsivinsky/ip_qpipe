@@ -13,4 +13,10 @@ namespace IP_QPIPE_LIB
     {
         return TPipeViewPool::createPipeViewTx(QString::fromLocal8Bit(key), chunkSize, chunkNum);
     }
+
+    //------------------------------------------------------------------------------
+    IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewRx(const char* key)
+    {
+        return TPipeViewPool::createPipeViewRx(QString::fromLocal8Bit(key));
+    }
 }

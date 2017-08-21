@@ -14,12 +14,13 @@ namespace IP_QPIPE_LIB
     {
         Ok                  =  0,  // all ok
         NotInit             = -1,  // not initialized
-        TxPipeExistError    = -3,  // tx pipe exist, attempt to open another one
+        PipeExistError      = -3,  // tx/rx pipe exist, attempt to open another one
         CreateError         = -4,  // create error
         DataAccessError     = -5,  // data access error
         AttachError         = -6,  // attach error
-        AttachTxParamsError = -7,  // previously created pipe params != current attached pipe params (actual only for 'writer')
+        //AttachTxParamsError = -7,  // previously created pipe params != current attached pipe params (actual only for 'writer')
         AttachTxExistError  = -8,  // attemt to attach as 'writer' when another one writer exist now
+        AttachRxExistError  = -9,  // attemt to attach as 'reader' but number of existed 'readers' over limit
     } TStatus;
 }
 
