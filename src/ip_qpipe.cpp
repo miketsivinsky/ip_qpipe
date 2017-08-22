@@ -176,9 +176,8 @@ void TSemThread::run()
         //mSem.acquire();
         if(mExit)
             return;
-        emit sendSemSignal(2);
         qDebug() << "slon 1" << QThread::currentThreadId();
-        msleep(200);
+        msleep(100);
     }
 }
 
@@ -222,10 +221,7 @@ TPipeViewRx::TPipeViewRx(const QString& key) : TPipeView(key),
     }
     //---
     mSemThread.setKey(mId);
-
     mSemThread.start();
-    QMetaObject::Connection con = connect(&mSemThread,&TSemThread::sendSemSignal,this,&TPipeViewRx::rcvSemSlot,Qt::QueuedConnection);
-    qDebug() << "connection" << con;
 }
 
 //------------------------------------------------------------------------------
@@ -239,12 +235,6 @@ TPipeViewRx::~TPipeViewRx()
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         qDebug() << "[INFO] [TPipeViewRx destructor]" << mControlBlock.key() << mId;
     #endif
-}
-
-//------------------------------------------------------------------------------
-void TPipeViewRx::rcvSemSlot(int)
-{
-    qDebug() << "slon 2" << QThread::currentThreadId();
 }
 
 //------------------------------------------------------------------------------

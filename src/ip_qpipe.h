@@ -17,7 +17,7 @@
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-class TPipeView : public QObject
+class TPipeView
 {
     public:
         TPipeView(const QString& key);
@@ -83,9 +83,6 @@ class TSemThread : public QThread
 {
     Q_OBJECT
 
-    signals:
-        void sendSemSignal(int);
-
     public:
         TSemThread(const QString& semKey) : mExit(false), mSem(semKey,0,QSystemSemaphore::Create) {}
         ~TSemThread() { mExit = true; mSem.release(); wait(WaitForFinish); }
@@ -103,11 +100,6 @@ class TSemThread : public QThread
 //------------------------------------------------------------------------------
 class TPipeViewRx : public TPipeView
 {
-    Q_OBJECT
-
-    protected slots:
-        void rcvSemSlot(int);
-
     public:
         TPipeViewRx(const QString& key);
         ~TPipeViewRx();
