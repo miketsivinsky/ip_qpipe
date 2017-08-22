@@ -170,8 +170,25 @@ TPipeViewTx::~TPipeViewTx()
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
+void TSemThread::run()
+{
+    while(!mExit) {
+        //mSem.acquire();
+        if(mExit)
+            return;
+        emit sendSemSignal(2);
+        qDebug() << "slon 1" << QThread::currentThreadId();
+        msleep(200);
+    }
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
 TPipeViewRx::TPipeViewRx(const QString& key) : TPipeView(key),
-                                               mId(-1)
+                                               mId(-1),
+                                               mSemThread(key)
 {
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
         if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
@@ -203,6 +220,12 @@ TPipeViewRx::TPipeViewRx(const QString& key) : TPipeView(key),
         #endif
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
+    //---
+    mSemThread.setKey(mId);
+
+    mSemThread.start();
+    QMetaObject::Connection con = connect(&mSemThread,&TSemThread::sendSemSignal,this,&TPipeViewRx::rcvSemSlot,Qt::QueuedConnection);
+    qDebug() << "connection" << con;
 }
 
 //------------------------------------------------------------------------------
@@ -216,6 +239,12 @@ TPipeViewRx::~TPipeViewRx()
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         qDebug() << "[INFO] [TPipeViewRx destructor]" << mControlBlock.key() << mId;
     #endif
+}
+
+//------------------------------------------------------------------------------
+void TPipeViewRx::rcvSemSlot(int)
+{
+    qDebug() << "slon 2" << QThread::currentThreadId();
 }
 
 //------------------------------------------------------------------------------

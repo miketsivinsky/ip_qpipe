@@ -6,7 +6,9 @@
 #include <cstdint>
 #include <map>
 
+#include <QThread>
 #include <QSharedMemory>
+#include <QSystemSemaphore>
 
 #include "ip_qpipe_def.h"
 
@@ -15,7 +17,7 @@
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-class TPipeView
+class TPipeView : public QObject
 {
     public:
         TPipeView(const QString& key);
@@ -77,14 +79,43 @@ class TPipeViewTx : public TPipeView
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
+class TSemThread : public QThread
+{
+    Q_OBJECT
+
+    signals:
+        void sendSemSignal(int);
+
+    public:
+        TSemThread(const QString& semKey) : mExit(false), mSem(semKey,0,QSystemSemaphore::Create) {}
+        ~TSemThread() { mExit = true; mSem.release(); wait(WaitForFinish); }
+        virtual void run() Q_DECL_OVERRIDE;
+        void setKey(int rxId) {  mSem.setKey(mSem.key() + QString::number(rxId)); }
+
+    protected:
+        static const unsigned WaitForFinish = 1000;
+
+        bool             mExit;
+        QSystemSemaphore mSem;
+};
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 class TPipeViewRx : public TPipeView
 {
+    Q_OBJECT
+
+    protected slots:
+        void rcvSemSlot(int);
+
     public:
         TPipeViewRx(const QString& key);
         ~TPipeViewRx();
 
     protected:
-        int mId;
+        int        mId;
+        TSemThread mSemThread;
+
 };
 
 //------------------------------------------------------------------------------
