@@ -79,13 +79,13 @@ class TPipeViewTx : public TPipeView
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-class TSemThread : public QThread
+class TPipeViewRxNotifier : public QThread
 {
     Q_OBJECT
 
     public:
-        TSemThread(const QString& semKey) : mExit(false), mSem(semKey,0,QSystemSemaphore::Create) {}
-        ~TSemThread() { mExit = true; mSem.release(); wait(WaitForFinish); }
+        TPipeViewRxNotifier(const QString& semKey) : mExit(false), mSem(semKey,0,QSystemSemaphore::Create) {}
+        ~TPipeViewRxNotifier() { mExit = true; mSem.release(); wait(WaitForFinish); }
         virtual void run() Q_DECL_OVERRIDE;
         void setKey(int rxId) {  mSem.setKey(mSem.key() + QString::number(rxId)); }
 
@@ -105,8 +105,8 @@ class TPipeViewRx : public TPipeView
         ~TPipeViewRx();
 
     protected:
-        int        mId;
-        TSemThread mSemThread;
+        int                 mId;
+        TPipeViewRxNotifier mNotifier;
 
 };
 

@@ -170,7 +170,7 @@ TPipeViewTx::~TPipeViewTx()
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-void TSemThread::run()
+void TPipeViewRxNotifier::run()
 {
     while(!mExit) {
         //mSem.acquire();
@@ -187,7 +187,7 @@ void TSemThread::run()
 //------------------------------------------------------------------------------
 TPipeViewRx::TPipeViewRx(const QString& key) : TPipeView(key),
                                                mId(-1),
-                                               mSemThread(key)
+                                               mNotifier(key)
 {
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
         if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
@@ -220,8 +220,8 @@ TPipeViewRx::TPipeViewRx(const QString& key) : TPipeView(key),
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
     //---
-    mSemThread.setKey(mId);
-    mSemThread.start();
+    mNotifier.setKey(mId);
+    mNotifier.start();
 }
 
 //------------------------------------------------------------------------------
