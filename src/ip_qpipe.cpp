@@ -2,6 +2,7 @@
 //------------------------------------------------------------------------------
 
 #include <cstdio>
+#include <type_traits> /*TEST*/
 
 #include <QtGlobal>
 #include <QDebug>
@@ -20,7 +21,7 @@ bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlB
         return false;
     if(left.txReady != right.txReady)
         return false;
-    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         if(left.rxReady[k] !=  right.rxReady[k])
             return false;
     }
@@ -28,12 +29,12 @@ bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlB
 }
 
 //------------------------------------------------------------------------------
-TPipeView::TControlBlock::TControlBlock() :
-                                            chunkSize(0),
-                                            chunkNum(0),
-                                            txReady(0)
+TPipeView::TControlBlock::TControlBlock()
 {
-    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+    chunkSize = 0;
+    chunkNum  = 0;
+    txReady   = 0;
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         rxReady[k] = 0;
     }
 }
@@ -47,7 +48,7 @@ TPipeView::TControlBlock& TPipeView::TControlBlock::operator=(const TControlBloc
     chunkSize = right.chunkSize;
     chunkNum  = right.chunkNum;
     txReady   = right.txReady;
-    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         rxReady[k] = right.rxReady[k];
     }
     return *this;
@@ -58,7 +59,7 @@ void TPipeView::TControlBlock::printInfo(TControlBlock& controlBlock)
 {
     printf("--- pipe attached ---\n");
     printf("txReady: %1d\n",controlBlock.txReady);
-    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         printf("rxReady[%1d]: %1d\n",k,controlBlock.rxReady[k]);
     }
 }
@@ -69,7 +70,7 @@ void TPipeView::TControlBlock::initTxView(TPipeView::TControlBlock& controlBlock
     controlBlock.chunkSize = chunkSize;
     controlBlock.chunkNum  = chunkNum;
     controlBlock.txReady   = 1;
-    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         controlBlock.rxReady[k] = 0;
     }
 }
@@ -98,7 +99,7 @@ void TPipeView::TControlBlock::initRxView(TPipeView::TControlBlock& controlBlock
     controlBlock.chunkNum   = 0;
     controlBlock.txReady    = 0;
     controlBlock.rxReady[0] = 1;
-    for(auto k = 1; k < TPipeView::MaxRxNum; ++k) {
+    for(auto k = 1; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         controlBlock.rxReady[k] = 0;
     }
 }
@@ -106,7 +107,7 @@ void TPipeView::TControlBlock::initRxView(TPipeView::TControlBlock& controlBlock
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeView::TControlBlock::attachRxView(TControlBlock& controlBlock,int& rxId)
 {
-    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         if(controlBlock.rxReady[k] == 0) {
             controlBlock.rxReady[k] = 1;
             rxId = k;
@@ -125,7 +126,8 @@ TPipeView::TPipeView(const QString& key) :
                                           mControlBlock(key +QString("_control")),
                                           mControlBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
-                                          mLastError(IP_QPIPE_LIB::NotInit)
+                                          mLastError(IP_QPIPE_LIB::NotInit),
+                                          mControlBlockCache()
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         //qDebug() << "[INFO] [TPipeView constructor]   key:" << key;
@@ -167,7 +169,7 @@ bool TPipeView::getControlBlockDataPtr()
 //------------------------------------------------------------------------------
 TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum) : TPipeView(key)
 {
-    for(auto k = 0; k < MaxRxNum; ++k) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         mSem[k] = 0;
     }
 
@@ -202,24 +204,30 @@ TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkN
     }
 
     //---
-    for(auto k = 0; k < MaxRxNum; ++k) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         mSem[k] = new QSystemSemaphore((key + QString::number(k)),0,QSystemSemaphore::Create);
     }
-    notifyRx();
+
+    //---
+    mControlBlockCache = getControlBlockView(); // not quarded
+    notifyRx(mControlBlockCache);
+
+    /*TEST*/ qDebug() << "is_standard_layout<TPipeView::TControlBlock>" << std::is_standard_layout<TPipeView::TControlBlock>::value;
 }
 
 //------------------------------------------------------------------------------
 TPipeViewTx::~TPipeViewTx()
 {
     if(mControlBlockData) {
-        notifyRx();
-        for(auto k = 0; k < MaxRxNum; ++k) {
+        { // locked
+            TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
+            TControlBlock& controlBlockView = getControlBlockView();
+            controlBlockView.txReady = 0;
+            notifyRx(controlBlockView);
+        } // unlocked
+        for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
             delete mSem[k];
         }
-        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        TControlBlock& controlBlockView = getControlBlockView();
-        controlBlockView.txReady = 0;
-
     }
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         qDebug() << "[INFO] [TPipeViewTx destructor]" << mControlBlock.key();
@@ -227,15 +235,11 @@ TPipeViewTx::~TPipeViewTx()
 }
 
 //------------------------------------------------------------------------------
-unsigned TPipeViewTx::notifyRx()
+unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 {
     unsigned num = 0;
-    if(!mControlBlockData)
-        return num;
-    TLock lockControlBlock(mControlBlock);
-    TControlBlock& controlBlockView = getControlBlockView();
-    for(auto k = 0; k < MaxRxNum; ++k) {
-        if(controlBlockView.rxReady[k]) {
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
+        if(controlBlock.rxReady[k]) {
             ++num;
             mSem[k]->release();
         }
@@ -261,7 +265,7 @@ void TPipeViewRxNotifier::run()
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-TPipeViewRx::TPipeViewRx(const QString& key) : TPipeView(key),
+TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo) : TPipeView(key),
                                                mId(-1),
                                                mNotifier(key)
 {
@@ -297,6 +301,10 @@ TPipeViewRx::TPipeViewRx(const QString& key) : TPipeView(key),
     }
     //---
     mNotifier.setKey(mId);
+    mControlBlockCache = getControlBlockView(); // not quarded
+    if(pipeInfo) {
+        *pipeInfo = mControlBlockCache;
+    }
     mNotifier.start();
 }
 
@@ -358,13 +366,13 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewTx(const QString& key, uint32
 }
 
 //------------------------------------------------------------------------------
-IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(const QString& key)
+IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo)
 {
     if(isPipeViewRxExist(key)) {
         return IP_QPIPE_LIB::PipeExistError;
     }
 
-    TPipeViewRx* pipeView = new TPipeViewRx(key);
+    TPipeViewRx* pipeView = new TPipeViewRx(key, pipeInfo);
     if(!pipeView->isPipeOk()) {
         IP_QPIPE_LIB::TStatus err = pipeView->error();
         delete pipeView;

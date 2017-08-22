@@ -30,7 +30,7 @@
 namespace IP_QPIPE_LIB
 {
         IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewTx(const char* key, uint32_t chunkSize, uint32_t chunkNum);
-        IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewRx(const char* key);
+        IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewRx(const char* key, IP_QPIPE_LIB::TPipeInfo* pipeInfo = 0);
 }
 
 #ifdef __cplusplus

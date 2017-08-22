@@ -26,16 +26,8 @@ class TPipeView
         IP_QPIPE_LIB::TStatus error() const { return mLastError; }
 
         //--- TControlBlock
-        static const int MaxRxNum = 4;
-
-        struct TControlBlock
+        struct TControlBlock : public IP_QPIPE_LIB::TPipeInfo
         {
-            //--- plain data
-            uint32_t chunkSize;
-            uint32_t chunkNum;
-            uint32_t txReady;
-            uint32_t rxReady[MaxRxNum];
-
             //---
             static void printInfo(TControlBlock& controlBlock);
             static void initTxView(TControlBlock& controlBlock, uint32_t chunkSize, uint32_t chunkNum);
@@ -72,6 +64,7 @@ class TPipeView
         void*                 mControlBlockData;
         IP_QPIPE_LIB::TStatus mStatus;
         IP_QPIPE_LIB::TStatus mLastError;
+        TControlBlock         mControlBlockCache;
 };
 
 bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlBlock& right);
@@ -85,9 +78,9 @@ class TPipeViewTx : public TPipeView
         ~TPipeViewTx();
 
     protected:
-        unsigned notifyRx();
+        unsigned notifyRx(const TPipeView::TControlBlock& controlBlock);
 
-        QSystemSemaphore* mSem[MaxRxNum];
+        QSystemSemaphore* mSem[TPipeView::TControlBlock::MaxRxNum];
 };
 
 //------------------------------------------------------------------------------
@@ -114,7 +107,7 @@ class TPipeViewRxNotifier : public QThread
 class TPipeViewRx : public TPipeView
 {
     public:
-        TPipeViewRx(const QString& key);
+        TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo = 0);
         ~TPipeViewRx();
 
     protected:
@@ -131,7 +124,7 @@ class TPipeViewPool
         static bool isPipeViewTxExist(const QString& key) { return (getPipeView(key,txPool()) != 0); }
         static bool isPipeViewRxExist(const QString& key) { return (getPipeView(key,rxPool()) != 0); }
         static IP_QPIPE_LIB::TStatus createPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum);
-        static IP_QPIPE_LIB::TStatus createPipeViewRx(const QString& key);
+        static IP_QPIPE_LIB::TStatus createPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo = 0);
 
     private:
         typedef std::map<QString,TPipeView*> TPipeViewPoolMap;
