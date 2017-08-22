@@ -57,11 +57,13 @@ TPipeView::TControlBlock& TPipeView::TControlBlock::operator=(const TControlBloc
 //------------------------------------------------------------------------------
 void TPipeView::TControlBlock::printInfo(TControlBlock& controlBlock)
 {
+    printf("\n");
     printf("--- pipe attached ---\n");
-    printf("txReady: %1d\n",controlBlock.txReady);
+    printf("txReady:    %1d\n",controlBlock.txReady);
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         printf("rxReady[%1d]: %1d\n",k,controlBlock.rxReady[k]);
     }
+    printf("\n");
 }
 
 //------------------------------------------------------------------------------
@@ -282,7 +284,7 @@ TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo) 
         if(!getControlBlockDataPtr())
             return;
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        /*DEBUG*/ TControlBlock::printInfo(getControlBlockView());
+        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
         if((mLastError = mStatus = TControlBlock::attachRxView(getControlBlockView(),mId)) != IP_QPIPE_LIB::Ok)
             return;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)

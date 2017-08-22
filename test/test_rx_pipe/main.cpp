@@ -19,13 +19,17 @@ int main(int argc, char* argv[]) {
     IP_QPIPE_LIB::TPipeInfo pipeInfo;
 
     IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewRx("slon",&pipeInfo);
+
+    printf("\n");
     printf("----- rx pipe -----\n");
-    printf("status: %1d\n",status);
-    printf("chunkNum: %2d, chunkSize: %2d\n",pipeInfo.chunkNum,pipeInfo.chunkSize);
-    printf("txReady: %1d\n",pipeInfo.txReady);
+    printf("status:    %6d\n",status);
+    printf("chunkNum:  %6d\n",pipeInfo.chunkNum);
+    printf("chunkSize: %6d\n",pipeInfo.chunkSize);
+    printf("txReady:   %6d\n",pipeInfo.txReady);
     for(auto k = 0; k < pipeInfo.MaxRxNum; ++k) {
-        printf("rxReady[%1d]: %1d\n",k,pipeInfo.rxReady[k]);
+        printf("rxReady[%1d]: %5d\n",k,pipeInfo.rxReady[k]);
     }
+    printf("\n");
 
     QThread::sleep(sTime);
     return 0;
