@@ -40,8 +40,14 @@ IP_QPIPE_LIB::TStatus TPipeView::TControlBlock::attachTxView(TControlBlock& cont
 {
     if(controlBlock.txReady)
         return IP_QPIPE_LIB::AttachTxExistError;
-    controlBlock.chunkSize = chunkSize;
-    controlBlock.chunkNum  = chunkNum;
+    if((controlBlock.chunkSize == 0) && (controlBlock.chunkNum == 0)) {
+        controlBlock.chunkSize = chunkSize;
+        controlBlock.chunkNum  = chunkNum;
+    } else {
+        if((controlBlock.chunkSize != chunkSize) || (controlBlock.chunkNum != chunkNum)) {
+            return IP_QPIPE_LIB::AttachTxParamsError;
+        }
+    }
     controlBlock.txReady   = 1;
     return IP_QPIPE_LIB::Ok;
 }
