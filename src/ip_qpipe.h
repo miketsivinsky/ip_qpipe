@@ -25,21 +25,27 @@ class TPipeView
         bool isPipeOk() const { return mStatus == IP_QPIPE_LIB::Ok; }
         IP_QPIPE_LIB::TStatus error() const { return mLastError; }
 
-        //---
+        //--- TControlBlock
         static const int MaxRxNum = 4;
 
         struct TControlBlock
         {
+            //--- plain data
             uint32_t chunkSize;
             uint32_t chunkNum;
             uint32_t txReady;
             uint32_t rxReady[MaxRxNum];
 
+            //---
             static void printInfo(TControlBlock& controlBlock);
             static void initTxView(TControlBlock& controlBlock, uint32_t chunkSize, uint32_t chunkNum);
             static IP_QPIPE_LIB::TStatus attachTxView(TControlBlock& controlBlock, uint32_t chunkSize, uint32_t chunkNum);
             static void initRxView(TControlBlock& controlBlock);
             static IP_QPIPE_LIB::TStatus attachRxView(TControlBlock& controlBlock,int& rxId);
+
+            //---
+            TControlBlock();
+            TControlBlock& operator=(const TControlBlock& right);
         };
 
    protected:
@@ -67,6 +73,8 @@ class TPipeView
         IP_QPIPE_LIB::TStatus mStatus;
         IP_QPIPE_LIB::TStatus mLastError;
 };
+
+bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlBlock& right);
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

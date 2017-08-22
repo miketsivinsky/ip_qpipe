@@ -14,6 +14,45 @@
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlBlock& right)
+{
+    if((left.chunkNum != right.chunkNum) || (left.chunkSize != right.chunkSize))
+        return false;
+    if(left.txReady != right.txReady)
+        return false;
+    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+        if(left.rxReady[k] !=  right.rxReady[k])
+            return false;
+    }
+    return true;
+}
+
+//------------------------------------------------------------------------------
+TPipeView::TControlBlock::TControlBlock() :
+                                            chunkSize(0),
+                                            chunkNum(0),
+                                            txReady(0)
+{
+    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+        rxReady[k] = 0;
+    }
+}
+
+//------------------------------------------------------------------------------
+TPipeView::TControlBlock& TPipeView::TControlBlock::operator=(const TControlBlock& right)
+{
+    if(this == &right)
+        return *this;
+
+    chunkSize = right.chunkSize;
+    chunkNum  = right.chunkNum;
+    txReady   = right.txReady;
+    for(auto k = 0; k < TPipeView::MaxRxNum; ++k) {
+        rxReady[k] = right.rxReady[k];
+    }
+    return *this;
+}
+
 //------------------------------------------------------------------------------
 void TPipeView::TControlBlock::printInfo(TControlBlock& controlBlock)
 {
