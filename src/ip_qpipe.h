@@ -75,6 +75,11 @@ class TPipeViewTx : public TPipeView
     public:
         TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum);
         ~TPipeViewTx();
+
+    protected:
+        unsigned notifyRx();
+
+        QSystemSemaphore* mSem[MaxRxNum];
 };
 
 //------------------------------------------------------------------------------

@@ -122,6 +122,10 @@ bool TPipeView::getControlBlockDataPtr()
 //------------------------------------------------------------------------------
 TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum) : TPipeView(key)
 {
+    for(auto k = 0; k < MaxRxNum; ++k) {
+        mSem[k] = 0;
+    }
+
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
         if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
             #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
@@ -151,19 +155,47 @@ TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkN
         #endif
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
+
+    //---
+    for(auto k = 0; k < MaxRxNum; ++k) {
+        mSem[k] = new QSystemSemaphore((key + QString::number(k)),0,QSystemSemaphore::Create);
+    }
+    notifyRx();
 }
 
 //------------------------------------------------------------------------------
 TPipeViewTx::~TPipeViewTx()
 {
     if(mControlBlockData) {
+        notifyRx();
+        for(auto k = 0; k < MaxRxNum; ++k) {
+            delete mSem[k];
+        }
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
         TControlBlock& controlBlockView = getControlBlockView();
         controlBlockView.txReady = 0;
+
     }
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         qDebug() << "[INFO] [TPipeViewTx destructor]" << mControlBlock.key();
     #endif
+}
+
+//------------------------------------------------------------------------------
+unsigned TPipeViewTx::notifyRx()
+{
+    unsigned num = 0;
+    if(!mControlBlockData)
+        return num;
+    TLock lockControlBlock(mControlBlock);
+    TControlBlock& controlBlockView = getControlBlockView();
+    for(auto k = 0; k < MaxRxNum; ++k) {
+        if(controlBlockView.rxReady[k]) {
+            ++num;
+            mSem[k]->release();
+        }
+    }
+    return num;
 }
 
 //------------------------------------------------------------------------------
@@ -173,11 +205,10 @@ TPipeViewTx::~TPipeViewTx()
 void TPipeViewRxNotifier::run()
 {
     while(!mExit) {
-        //mSem.acquire();
+        mSem.acquire();
         if(mExit)
             return;
         qDebug() << "slon 1" << QThread::currentThreadId();
-        msleep(100);
     }
 }
 
