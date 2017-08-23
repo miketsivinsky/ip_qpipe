@@ -107,7 +107,7 @@ class TPipeViewRxNotifier : public QThread
 class TPipeViewRx : public TPipeView
 {
     public:
-        TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo = 0);
+        TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeRxParams& params);
         ~TPipeViewRx();
 
     protected:
@@ -124,7 +124,7 @@ class TPipeViewPool
         static bool isPipeViewTxExist(const QString& key) { return (getPipeView(key,txPool()) != 0); }
         static bool isPipeViewRxExist(const QString& key) { return (getPipeView(key,rxPool()) != 0); }
         static IP_QPIPE_LIB::TStatus createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
-        static IP_QPIPE_LIB::TStatus createPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo = 0);
+        static IP_QPIPE_LIB::TStatus createPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params);
 
     private:
         typedef std::map<QString,TPipeView*> TPipeViewPoolMap;

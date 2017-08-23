@@ -30,7 +30,7 @@
 namespace IP_QPIPE_LIB
 {
         IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewTx(TPipeTxParams& params);
-        IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewRx(const char* key, IP_QPIPE_LIB::TPipeInfo* pipeInfo = 0);
+        IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus createPipeViewRx(TPipeRxParams& params);
 }
 
 #ifdef __cplusplus

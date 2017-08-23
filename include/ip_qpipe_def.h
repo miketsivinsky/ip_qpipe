@@ -49,6 +49,15 @@ namespace IP_QPIPE_LIB
         TPipeInfo pipeInfo;
     };
 
+    //---
+    struct TPipeRxParams
+    {
+        const char* pipeKey;
+        bool        isCreated;
+        int         pipeId;
+        TPipeInfo pipeInfo;
+    };
+
 }
 
 #ifdef __cplusplus
