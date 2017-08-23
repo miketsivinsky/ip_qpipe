@@ -276,7 +276,7 @@ void TPipeViewRxNotifier::run()
 //------------------------------------------------------------------------------
 TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(key),
                                                mId(-1),
-                                               mNotifier(key)
+                                               mNotifier(key,*this)
 {
     //--- pipe exist, viewRx attached
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
