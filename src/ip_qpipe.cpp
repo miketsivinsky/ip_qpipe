@@ -175,6 +175,7 @@ TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkN
         mSem[k] = 0;
     }
 
+    //--- pipe exist, viewTx attached
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
         if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
             #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
@@ -194,7 +195,7 @@ TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkN
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
             qDebug() << "[INFO] [tx][attached]" << key;
         #endif
-    } else {
+    } else { //--- pipe not exist, viewTx created
         if(!getControlBlockDataPtr())
             return;
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
@@ -271,6 +272,7 @@ TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo) 
                                                mId(-1),
                                                mNotifier(key)
 {
+    //--- pipe exist, viewRx attached
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
         if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
             #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
@@ -290,7 +292,7 @@ TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo) 
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
             qDebug() << "[INFO] [rx][attached]" << key << mId;
         #endif
-    } else {
+    } else { //--- pipe not exist, viewRx created
         if(!getControlBlockDataPtr())
             return;
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
