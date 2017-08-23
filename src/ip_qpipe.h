@@ -74,7 +74,7 @@ bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlB
 class TPipeViewTx : public TPipeView
 {
     public:
-        TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum);
+        TPipeViewTx(const QString& key, IP_QPIPE_LIB::TPipeTxParams& params);
         ~TPipeViewTx();
 
     protected:
@@ -123,7 +123,7 @@ class TPipeViewPool
     public:
         static bool isPipeViewTxExist(const QString& key) { return (getPipeView(key,txPool()) != 0); }
         static bool isPipeViewRxExist(const QString& key) { return (getPipeView(key,rxPool()) != 0); }
-        static IP_QPIPE_LIB::TStatus createPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum);
+        static IP_QPIPE_LIB::TStatus createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         static IP_QPIPE_LIB::TStatus createPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeInfo* pipeInfo = 0);
 
     private:

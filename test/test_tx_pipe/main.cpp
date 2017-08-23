@@ -6,6 +6,9 @@
 #include "ip_qpipe_lib.h"
 
 //------------------------------------------------------------------------------
+void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxParams& params);
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
 
@@ -15,10 +18,36 @@ int main(int argc, char* argv[]) {
     }
 
     //---
-    IP_QPIPE_LIB::TStatus status1 = IP_QPIPE_LIB::createPipeViewTx("slon",1024,32);
-    printf("status1: %1d\n",status1);
+    IP_QPIPE_LIB::TPipeTxParams txParams;
+    txParams.pipeKey            = "slon";
+    txParams.pipeInfo.chunkNum  = 32;
+    txParams.pipeInfo.chunkSize = 1024;
+
+    IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewTx(txParams);
+    printPipeTxInfo(status,txParams);
 
     QThread::sleep(sTime);
     return 0;
 }
+
+//------------------------------------------------------------------------------
+void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxParams& params)
+{
+    printf("\n");
+    printf("----- tx pipe -----\n");
+    printf("key:       %6s\n",params.pipeKey);
+    printf("status:    %6d\n",status);
+    printf("isCreated: %6d\n",params.isCreated);
+    printf("\n");
+    printf("chunkNum:  %6d\n",params.pipeInfo.chunkNum);
+    printf("chunkSize: %6d\n",params.pipeInfo.chunkSize);
+    printf("\n");
+    printf("txReady:   %6d\n",params.pipeInfo.txReady);
+    for(auto k = 0; k < params.pipeInfo.MaxRxNum; ++k) {
+        printf("rxReady[%1d]: %5d\n",k,params.pipeInfo.rxReady[k]);
+    }
+    printf("-------------------\n");
+    printf("\n");
+}
+
 

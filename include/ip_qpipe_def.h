@@ -40,6 +40,15 @@ namespace IP_QPIPE_LIB
         uint32_t txReady;
         uint32_t rxReady[MaxRxNum];
     };
+
+    //---
+    struct TPipeTxParams
+    {
+        const char* pipeKey;
+        bool        isCreated;
+        TPipeInfo pipeInfo;
+    };
+
 }
 
 #ifdef __cplusplus

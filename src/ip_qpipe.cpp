@@ -169,8 +169,11 @@ bool TPipeView::getControlBlockDataPtr()
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum) : TPipeView(key)
+TPipeViewTx::TPipeViewTx(const QString& key, IP_QPIPE_LIB::TPipeTxParams& params) : TPipeView(key)
 {
+    uint32_t chunkSize = params.pipeInfo.chunkSize;
+    uint32_t chunkNum  = params.pipeInfo.chunkNum;
+
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         mSem[k] = 0;
     }
@@ -189,11 +192,12 @@ TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkN
         if(!getControlBlockDataPtr())
             return;
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        /*DEBUG*/ TControlBlock::printInfo(getControlBlockView());
+        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
         if((mLastError = mStatus = TControlBlock::attachTxView(getControlBlockView(),chunkSize, chunkNum)) != IP_QPIPE_LIB::Ok)
             return;
+        params.isCreated = false;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [tx][attached]" << key;
+            // qDebug() << "[INFO] [tx][attached]" << key;
         #endif
     } else { //--- pipe not exist, viewTx created
         if(!getControlBlockDataPtr())
@@ -201,8 +205,9 @@ TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkN
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
         TControlBlock::initTxView(getControlBlockView(),chunkSize, chunkNum);
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [tx][created]" << key;
+            // qDebug() << "[INFO] [tx][created]" << key;
         #endif
+        params.isCreated = true;
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
 
@@ -213,9 +218,10 @@ TPipeViewTx::TPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkN
 
     //---
     mControlBlockCache = getControlBlockView(); // not quarded
+    params.pipeInfo    = mControlBlockCache;
     notifyRx(mControlBlockCache);
 
-    /*TEST*/ qDebug() << "is_standard_layout<TPipeView::TControlBlock>" << std::is_standard_layout<TPipeView::TControlBlock>::value;
+    /*TEST*/ // qDebug() << "is_standard_layout<TPipeView::TControlBlock>" << std::is_standard_layout<TPipeView::TControlBlock>::value;
 }
 
 //------------------------------------------------------------------------------
@@ -353,13 +359,15 @@ TPipeView* TPipeViewPool::getPipeView(const QString& key, TPipeViewPoolMap& pool
 }
 
 //------------------------------------------------------------------------------
-IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewTx(const QString& key, uint32_t chunkSize, uint32_t chunkNum)
+IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params)
 {
+    QString key = QString::fromLocal8Bit(params.pipeKey);
+
     if(isPipeViewTxExist(key)) {
         return IP_QPIPE_LIB::PipeExistError;
     }
 
-    TPipeViewTx* pipeView = new TPipeViewTx(key,chunkSize,chunkNum);
+    TPipeViewTx* pipeView = new TPipeViewTx(key,params);
     if(!pipeView->isPipeOk()) {
         IP_QPIPE_LIB::TStatus err = pipeView->error();
         delete pipeView;
