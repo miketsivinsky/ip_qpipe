@@ -58,11 +58,14 @@ TPipeView::TControlBlock& TPipeView::TControlBlock::operator=(const TControlBloc
 void TPipeView::TControlBlock::printInfo(TControlBlock& controlBlock)
 {
     printf("\n");
-    printf("--- pipe attached ---\n");
-    printf("txReady:    %1d\n",controlBlock.txReady);
+    printf("--- pipe control block info ---\n");
+    printf("chunkNum:  %6d\n",controlBlock.chunkNum);
+    printf("chunkSize: %6d\n",controlBlock.chunkSize);
+    printf("txReady:   %6d\n",controlBlock.txReady);
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
-        printf("rxReady[%1d]: %1d\n",k,controlBlock.rxReady[k]);
+        printf("rxReady[%1d]: %5d\n",k,controlBlock.rxReady[k]);
     }
+    printf("-------------------------------\n");
     printf("\n");
 }
 
@@ -266,7 +269,8 @@ void TPipeViewRxNotifier::run()
         mSem.acquire();
         if(mExit)
             return;
-        qDebug() << "slon 1" << QThread::currentThreadId();
+        IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
+        qDebug() << "key:" << mPipeViewRx.mControlBlock.key() << "id:" << mPipeViewRx.mId << "event:" << txEvent;
     }
 }
 
@@ -331,6 +335,26 @@ TPipeViewRx::~TPipeViewRx()
         qDebug() << "[INFO] [TPipeViewRx destructor]" << mControlBlock.key() << mId;
     #endif
 }
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TTxEvent TPipeViewRx::whatTxEvent()
+{
+    IP_QPIPE_LIB::TTxEvent txEvent = IP_QPIPE_LIB::TxError;
+
+    TLock lockControlBlock(mControlBlock);
+    TControlBlock& controlBlockView = getControlBlockView();
+
+    if((mControlBlockCache.txReady == 0) && (controlBlockView.txReady != 0))
+        txEvent = IP_QPIPE_LIB::TxConnected;
+    if((mControlBlockCache.txReady != 0) && (controlBlockView.txReady == 0))
+        txEvent = IP_QPIPE_LIB::TxDisconnected;
+    if((mControlBlockCache.txReady != 0) && (controlBlockView.txReady != 0))
+        txEvent = IP_QPIPE_LIB::TxTransfer;
+
+    mControlBlockCache = controlBlockView;
+    return txEvent;
+}
+
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

@@ -29,6 +29,15 @@ namespace IP_QPIPE_LIB
         AttachRxExistError  = -9,  // attemt to attach as 'reader' but number of existed 'readers' over limit
     } TStatus;
 
+    //---
+    typedef enum
+    {
+        TxError             = -1,
+        TxTransfer          =  0,
+        TxConnected         =  1,
+        TxDisconnected      =  2
+    } TTxEvent;
+
 
     //---
     struct TPipeInfo

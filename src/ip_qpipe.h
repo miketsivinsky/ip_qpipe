@@ -17,6 +17,32 @@
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
+class TPipeViewRx;
+
+class TPipeViewRxNotifier : public QThread
+{
+    Q_OBJECT
+
+    public:
+        TPipeViewRxNotifier(const QString& semKey, TPipeViewRx& pipeViewRx) :
+                                                                              mExit(false),
+                                                                              mSem(semKey,0,QSystemSemaphore::Create),
+                                                                              mPipeViewRx(pipeViewRx)
+                                                                              {}
+        ~TPipeViewRxNotifier() { mExit = true; mSem.release(); wait(WaitForFinish); }
+        virtual void run() Q_DECL_OVERRIDE;
+        void setKey(int rxId) {  mSem.setKey(mSem.key() + QString::number(rxId)); }
+
+    protected:
+        static const unsigned WaitForFinish = 1000;
+
+        bool             mExit;
+        QSystemSemaphore mSem;
+        TPipeViewRx&     mPipeViewRx;
+};
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 class TPipeView
 {
     public:
@@ -83,31 +109,6 @@ class TPipeViewTx : public TPipeView
         QSystemSemaphore* mSem[TPipeView::TControlBlock::MaxRxNum];
 };
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-class TPipeViewRx;
-
-class TPipeViewRxNotifier : public QThread
-{
-    Q_OBJECT
-
-    public:
-        TPipeViewRxNotifier(const QString& semKey, TPipeViewRx& pipeViewRx) :
-                                                                              mExit(false),
-                                                                              mSem(semKey,0,QSystemSemaphore::Create),
-                                                                              mPipeViewRx(pipeViewRx)
-                                                                              {}
-        ~TPipeViewRxNotifier() { mExit = true; mSem.release(); wait(WaitForFinish); }
-        virtual void run() Q_DECL_OVERRIDE;
-        void setKey(int rxId) {  mSem.setKey(mSem.key() + QString::number(rxId)); }
-
-    protected:
-        static const unsigned WaitForFinish = 1000;
-
-        bool             mExit;
-        QSystemSemaphore mSem;
-        TPipeViewRx&     mPipeViewRx;
-};
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -120,6 +121,8 @@ class TPipeViewRx : public TPipeView
         ~TPipeViewRx();
 
     protected:
+        IP_QPIPE_LIB::TTxEvent whatTxEvent();
+
         int                 mId;
         TPipeViewRxNotifier mNotifier;
 
