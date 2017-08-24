@@ -53,17 +53,17 @@ namespace IP_QPIPE_LIB
     //---
     struct TPipeTxParams
     {
-        const char* pipeKey;
-        bool        isCreated;
+        unsigned  pipeKey;
+        bool      isCreated;
         TPipeInfo pipeInfo;
     };
 
     //---
     struct TPipeRxParams
     {
-        const char* pipeKey;
-        bool        isCreated;
-        int         pipeId;
+        unsigned  pipeKey;
+        bool      isCreated;
+        int       pipeId;
         TPipeInfo pipeInfo;
     };
 

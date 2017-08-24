@@ -17,6 +17,7 @@
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
+class TPipeView;
 class TPipeViewRx;
 
 class TPipeViewRxNotifier : public QThread
@@ -24,14 +25,14 @@ class TPipeViewRxNotifier : public QThread
     Q_OBJECT
 
     public:
-        TPipeViewRxNotifier(const QString& semKey, TPipeViewRx& pipeViewRx) :
-                                                                              mExit(false),
-                                                                              mSem(semKey,0,QSystemSemaphore::Create),
-                                                                              mPipeViewRx(pipeViewRx)
-                                                                              {}
+        //---
+        static QString genKey(const TPipeView& pipeView, int rxId = -1);
+
+        //---
+        TPipeViewRxNotifier(TPipeViewRx& pipeViewRx);
         ~TPipeViewRxNotifier() { mExit = true; mSem.release(); wait(WaitForFinish); }
         virtual void run() Q_DECL_OVERRIDE;
-        void setKey(int rxId) {  mSem.setKey(mSem.key() + QString::number(rxId)); }
+        void setKeyPipeId(int rxId);
 
     protected:
         static const unsigned WaitForFinish = 1000;
@@ -46,10 +47,11 @@ class TPipeViewRxNotifier : public QThread
 class TPipeView
 {
     public:
-        TPipeView(const QString& key);
+        TPipeView(unsigned key);
         virtual ~TPipeView();
         bool isPipeOk() const { return mStatus == IP_QPIPE_LIB::Ok; }
         IP_QPIPE_LIB::TStatus error() const { return mLastError; }
+        unsigned key() const { return mKey; }
 
         //--- TControlBlock
         struct TControlBlock : public IP_QPIPE_LIB::TPipeInfo
@@ -91,6 +93,7 @@ class TPipeView
         IP_QPIPE_LIB::TStatus mStatus;
         IP_QPIPE_LIB::TStatus mLastError;
         TControlBlock         mControlBlockCache;
+        unsigned              mKey;
 };
 
 bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlBlock& right);
@@ -100,7 +103,7 @@ bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlB
 class TPipeViewTx : public TPipeView
 {
     public:
-        TPipeViewTx(const QString& key, IP_QPIPE_LIB::TPipeTxParams& params);
+        TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         ~TPipeViewTx();
 
     protected:
@@ -117,8 +120,9 @@ class TPipeViewRx : public TPipeView
     friend class TPipeViewRxNotifier;
 
     public:
-        TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeRxParams& params);
+        TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params);
         ~TPipeViewRx();
+        int id() const { return mId; }
 
     protected:
         IP_QPIPE_LIB::TTxEvent whatTxEvent();
@@ -133,13 +137,13 @@ class TPipeViewRx : public TPipeView
 class TPipeViewPool
 {
     public:
-        static bool isPipeViewTxExist(const QString& key) { return (getPipeView(key,txPool()) != 0); }
-        static bool isPipeViewRxExist(const QString& key) { return (getPipeView(key,rxPool()) != 0); }
+        static bool isPipeViewTxExist(unsigned key) { return (getPipeView(key,txPool()) != 0); }
+        static bool isPipeViewRxExist(unsigned key) { return (getPipeView(key,rxPool()) != 0); }
         static IP_QPIPE_LIB::TStatus createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         static IP_QPIPE_LIB::TStatus createPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params);
 
     private:
-        typedef std::map<QString,TPipeView*> TPipeViewPoolMap;
+        typedef std::map<unsigned,TPipeView*> TPipeViewPoolMap;
 
         static TPipeViewPool& instance() {
             static TPipeViewPool pool;
@@ -151,7 +155,7 @@ class TPipeViewPool
 
         TPipeViewPool() : mTxPool(), mRxPool() { }
         ~TPipeViewPool();
-        static TPipeView* getPipeView(const QString& key, TPipeViewPoolMap& pool);
+        static TPipeView* getPipeView(unsigned key, TPipeViewPoolMap& pool);
 
         TPipeViewPoolMap mTxPool;
         TPipeViewPoolMap mRxPool;

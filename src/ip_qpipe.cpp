@@ -122,20 +122,61 @@ IP_QPIPE_LIB::TStatus TPipeView::TControlBlock::attachRxView(TControlBlock& cont
     return IP_QPIPE_LIB::AttachRxExistError;
 }
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+QString TPipeViewRxNotifier::genKey(const TPipeView& pipeView, int rxId)
+{
+    if(rxId == -1)
+        return QString::number(pipeView.key()) + QString("_sem_pipe_rx_");
+    else
+        return QString::number(pipeView.key()) + QString("_sem_pipe_rx_") + QString::number(rxId);
+}
+
+
+//------------------------------------------------------------------------------
+TPipeViewRxNotifier::TPipeViewRxNotifier(TPipeViewRx& pipeViewRx) :
+                                                                    mExit(false),
+                                                                    mSem(genKey(pipeViewRx),0,QSystemSemaphore::Create),
+                                                                    mPipeViewRx(pipeViewRx)
+{
+    // TPipeViewRxNotifier constructor
+}
+
+//------------------------------------------------------------------------------
+void TPipeViewRxNotifier::setKeyPipeId(int rxId)
+{
+    mSem.setKey(genKey(mPipeViewRx.key(),rxId));
+}
+
+//------------------------------------------------------------------------------
+void TPipeViewRxNotifier::run()
+{
+    while(!mExit) {
+        mSem.acquire();
+        if(mExit)
+            return;
+        IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
+        qDebug() << "key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id() << "event:" << txEvent;
+    }
+}
+
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-TPipeView::TPipeView(const QString& key) :
-                                          mControlBlock(key +QString("_control")),
+TPipeView::TPipeView(unsigned key) :
+                                          mControlBlock(QString::number(key) +QString("_control")),
                                           mControlBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
                                           mLastError(IP_QPIPE_LIB::NotInit),
-                                          mControlBlockCache()
+                                          mControlBlockCache(),
+                                          mKey(key)
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        //qDebug() << "[INFO] [TPipeView constructor]   key:" << key;
+        //qDebug() << "[INFO] [TPipeView constructor]   key:" << key();
     #endif
 }
 
@@ -143,7 +184,7 @@ TPipeView::TPipeView(const QString& key) :
 TPipeView::~TPipeView()
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        //qDebug() << "[INFO] [TPipeView destructor]    control block key:" << mControlBlock.key();
+        //qDebug() << "[INFO] [TPipeView destructor] key:" << key();
     #endif
 }
 
@@ -172,7 +213,7 @@ bool TPipeView::getControlBlockDataPtr()
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-TPipeViewTx::TPipeViewTx(const QString& key, IP_QPIPE_LIB::TPipeTxParams& params) : TPipeView(key)
+TPipeViewTx::TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params) : TPipeView(params.pipeKey)
 {
     uint32_t chunkSize = params.pipeInfo.chunkSize;
     uint32_t chunkNum  = params.pipeInfo.chunkNum;
@@ -200,7 +241,7 @@ TPipeViewTx::TPipeViewTx(const QString& key, IP_QPIPE_LIB::TPipeTxParams& params
             return;
         params.isCreated = false;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            // qDebug() << "[INFO] [tx][attached]" << key;
+            // qDebug() << "[INFO] [tx][attached] key:" << key();
         #endif
     } else { //--- pipe not exist, viewTx created
         if(!getControlBlockDataPtr())
@@ -208,7 +249,7 @@ TPipeViewTx::TPipeViewTx(const QString& key, IP_QPIPE_LIB::TPipeTxParams& params
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
         TControlBlock::initTxView(getControlBlockView(),chunkSize, chunkNum);
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            // qDebug() << "[INFO] [tx][created]" << key;
+            // qDebug() << "[INFO] [tx][created] key:" << key();
         #endif
         params.isCreated = true;
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
@@ -216,7 +257,7 @@ TPipeViewTx::TPipeViewTx(const QString& key, IP_QPIPE_LIB::TPipeTxParams& params
 
     //---
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
-        mSem[k] = new QSystemSemaphore((key + QString::number(k)),0,QSystemSemaphore::Create);
+        mSem[k] = new QSystemSemaphore(TPipeViewRxNotifier::genKey(*this,k),0,QSystemSemaphore::Create);
     }
 
     //---
@@ -242,7 +283,7 @@ TPipeViewTx::~TPipeViewTx()
         }
     }
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        qDebug() << "[INFO] [TPipeViewTx destructor]" << mControlBlock.key();
+        qDebug() << "[INFO] [TPipeViewTx destructor] key:" << key();
     #endif
 }
 
@@ -263,24 +304,9 @@ unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-void TPipeViewRxNotifier::run()
-{
-    while(!mExit) {
-        mSem.acquire();
-        if(mExit)
-            return;
-        IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
-        qDebug() << "key:" << mPipeViewRx.mControlBlock.key() << "id:" << mPipeViewRx.mId << "event:" << txEvent;
-    }
-}
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
-TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(key),
-                                               mId(-1),
-                                               mNotifier(key,*this)
+TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params.pipeKey),
+                                                                mId(-1),
+                                                                mNotifier(*this)
 {
     //--- pipe exist, viewRx attached
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
@@ -301,7 +327,7 @@ TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeRxParams& params
             return;
         params.isCreated = false;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [rx][attached]" << key << mId;
+            qDebug() << "[INFO] [rx][attached] key:" << key() << "id:" << id();
         #endif
     } else { //--- pipe not exist, viewRx created
         if(!getControlBlockDataPtr())
@@ -311,14 +337,14 @@ TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeRxParams& params
         mId = 0;
         params.isCreated = true;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [rx][created]" << key << mId;
+            qDebug() << "[INFO] [rx][created] key:" << key() << "id:" << id();
         #endif
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
     //---
-    mNotifier.setKey(mId);
+    mNotifier.setKeyPipeId(id());
     mControlBlockCache = getControlBlockView(); // not quarded
-    params.pipeId   = mId;
+    params.pipeId   = id();
     params.pipeInfo = mControlBlockCache;
     mNotifier.start();
 }
@@ -326,13 +352,13 @@ TPipeViewRx::TPipeViewRx(const QString& key, IP_QPIPE_LIB::TPipeRxParams& params
 //------------------------------------------------------------------------------
 TPipeViewRx::~TPipeViewRx()
 {
-    if(mControlBlockData && (mId != -1)) {
+    if(mControlBlockData && (id() != -1)) {
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
         TControlBlock& controlBlockView = getControlBlockView();
         controlBlockView.rxReady[mId] = 0;
     }
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        qDebug() << "[INFO] [TPipeViewRx destructor]" << mControlBlock.key() << mId;
+        qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id();
     #endif
 }
 
@@ -377,7 +403,7 @@ TPipeViewPool::~TPipeViewPool()
 }
 
 //------------------------------------------------------------------------------
-TPipeView* TPipeViewPool::getPipeView(const QString& key, TPipeViewPoolMap& pool)
+TPipeView* TPipeViewPool::getPipeView(unsigned key, TPipeViewPoolMap& pool)
 {
     auto pipeView = pool.find(key);
     return (pipeView == pool.end()) ? 0 : pipeView->second;
@@ -386,38 +412,34 @@ TPipeView* TPipeViewPool::getPipeView(const QString& key, TPipeViewPoolMap& pool
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params)
 {
-    QString key = QString::fromLocal8Bit(params.pipeKey);
-
-    if(isPipeViewTxExist(key)) {
+    if(isPipeViewTxExist(params.pipeKey)) {
         return IP_QPIPE_LIB::PipeExistError;
     }
 
-    TPipeViewTx* pipeView = new TPipeViewTx(key,params);
+    TPipeViewTx* pipeView = new TPipeViewTx(params);
     if(!pipeView->isPipeOk()) {
         IP_QPIPE_LIB::TStatus err = pipeView->error();
         delete pipeView;
         return err;
     }
-    txPool().insert(std::pair<QString,TPipeView*>(key,pipeView));
+    txPool().insert(std::pair<unsigned,TPipeView*>(pipeView->key(),pipeView));
     return IP_QPIPE_LIB::Ok;
 }
 
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params)
 {
-    QString key = QString::fromLocal8Bit(params.pipeKey);
-
-    if(isPipeViewRxExist(key)) {
+    if(isPipeViewRxExist(params.pipeKey)) {
         return IP_QPIPE_LIB::PipeExistError;
     }
 
-    TPipeViewRx* pipeView = new TPipeViewRx(key, params);
+    TPipeViewRx* pipeView = new TPipeViewRx(params);
     if(!pipeView->isPipeOk()) {
         IP_QPIPE_LIB::TStatus err = pipeView->error();
         delete pipeView;
         return err;
     }
-    rxPool().insert(std::pair<QString,TPipeView*>(key,pipeView));
+    rxPool().insert(std::pair<unsigned,TPipeView*>(pipeView->key(),pipeView));
     return IP_QPIPE_LIB::Ok;
 }
 

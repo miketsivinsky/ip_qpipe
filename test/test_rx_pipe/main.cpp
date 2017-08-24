@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     //---
     //---
     IP_QPIPE_LIB::TPipeRxParams rxParams;
-    rxParams.pipeKey            = "slon";
+    rxParams.pipeKey            = 2307;
 
     IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewRx(rxParams);
     printPipeRxInfo(status,rxParams);
@@ -35,7 +35,7 @@ void printPipeRxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeRxPa
 {
     printf("\n");
     printf("----- rx pipe -----\n");
-    printf("key:       %6s\n",params.pipeKey);
+    printf("key:       %6d\n",params.pipeKey);
     printf("pipeId:    %6d\n",params.pipeId);
     printf("status:    %6d\n",status);
     printf("isCreated: %6d\n",params.isCreated);

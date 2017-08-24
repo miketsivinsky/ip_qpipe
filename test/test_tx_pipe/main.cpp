@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
     //---
     IP_QPIPE_LIB::TPipeTxParams txParams;
-    txParams.pipeKey            = "slon";
+    txParams.pipeKey            = 2307;
     txParams.pipeInfo.chunkNum  = 32;
     txParams.pipeInfo.chunkSize = 1024;
 
@@ -35,7 +35,7 @@ void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxPa
 {
     printf("\n");
     printf("----- tx pipe -----\n");
-    printf("key:       %6s\n",params.pipeKey);
+    printf("key:       %6d\n",params.pipeKey);
     printf("status:    %6d\n",status);
     printf("isCreated: %6d\n",params.isCreated);
     printf("\n");
