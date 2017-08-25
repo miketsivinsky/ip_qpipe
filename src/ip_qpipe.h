@@ -127,8 +127,9 @@ class TPipeViewRx : public TPipeView
     protected:
         IP_QPIPE_LIB::TTxEvent whatTxEvent();
 
-        int                 mId;
-        TPipeViewRxNotifier mNotifier;
+        int                               mId;
+        TPipeViewRxNotifier               mNotifier;
+        IP_QPIPE_LIB::PipeRxNotifyFunc    mNotifyFunc;
 
 };
 

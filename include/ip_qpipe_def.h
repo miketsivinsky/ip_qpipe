@@ -51,6 +51,9 @@ namespace IP_QPIPE_LIB
     };
 
     //---
+    typedef void (*PipeRxNotifyFunc)(unsigned pipeKey, TTxEvent txEvent, int pipeId, const TPipeInfo& pipeInfo);
+
+    //---
     struct TPipeTxParams
     {
         unsigned  pipeKey;
@@ -61,10 +64,11 @@ namespace IP_QPIPE_LIB
     //---
     struct TPipeRxParams
     {
-        unsigned  pipeKey;
-        bool      isCreated;
-        int       pipeId;
-        TPipeInfo pipeInfo;
+        unsigned         pipeKey;
+        bool             isCreated;
+        int              pipeId;
+        TPipeInfo        pipeInfo;
+        PipeRxNotifyFunc pipeRxNotifyFunc;
     };
 
 }

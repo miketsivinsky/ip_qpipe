@@ -158,7 +158,9 @@ void TPipeViewRxNotifier::run()
         if(mExit)
             return;
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
-        qDebug() << "key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id() << "event:" << txEvent;
+        if(mPipeViewRx.mNotifyFunc) {
+            (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
+        }
     }
 }
 
@@ -306,7 +308,8 @@ unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 //------------------------------------------------------------------------------
 TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params.pipeKey),
                                                                 mId(-1),
-                                                                mNotifier(*this)
+                                                                mNotifier(*this),
+                                                                mNotifyFunc(params.pipeRxNotifyFunc)
 {
     //--- pipe exist, viewRx attached
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {

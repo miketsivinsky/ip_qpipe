@@ -8,6 +8,7 @@
 
 //------------------------------------------------------------------------------
 void printPipeRxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeRxParams& params);
+void PipeRxNotifyFunc(unsigned pipeKey, IP_QPIPE_LIB::TTxEvent txEvent, int pipeId, const IP_QPIPE_LIB::TPipeInfo& pipeInfo);
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -22,6 +23,7 @@ int main(int argc, char* argv[]) {
     //---
     IP_QPIPE_LIB::TPipeRxParams rxParams;
     rxParams.pipeKey            = 2307;
+    rxParams.pipeRxNotifyFunc   = PipeRxNotifyFunc;
 
     IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewRx(rxParams);
     printPipeRxInfo(status,rxParams);
@@ -48,5 +50,17 @@ void printPipeRxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeRxPa
         printf("rxReady[%1d]: %5d\n",k,params.pipeInfo.rxReady[k]);
     }
     printf("-------------------\n");
+    printf("\n");
+}
+
+//------------------------------------------------------------------------------
+void PipeRxNotifyFunc(unsigned pipeKey, IP_QPIPE_LIB::TTxEvent txEvent, int pipeId, const IP_QPIPE_LIB::TPipeInfo& pipeInfo)
+{
+    printf("--- PipeRxNotifyFunc ---\n");
+    printf("key:       %6d\n",pipeKey);
+    printf("txEvent:   %6d\n",txEvent);
+    printf("pipeId:    %6d\n",pipeId);
+    printf("chunkNum:  %6d\n",pipeInfo.chunkNum);
+    printf("chunkSize: %6d\n",pipeInfo.chunkSize);
     printf("\n");
 }
