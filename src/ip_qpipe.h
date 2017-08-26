@@ -57,6 +57,11 @@ class TPipeView
         struct TControlBlock : public IP_QPIPE_LIB::TPipeInfo
         {
             //---
+            uint32_t txBufIdx;
+            uint32_t txGblIdx;
+            uint32_t txBufEmpty;
+
+            //---
             static void printInfo(TControlBlock& controlBlock);
             static void initTxView(TControlBlock& controlBlock, uint32_t chunkSize, uint32_t chunkNum);
             static IP_QPIPE_LIB::TStatus attachTxView(TControlBlock& controlBlock, uint32_t chunkSize, uint32_t chunkNum);
@@ -68,7 +73,21 @@ class TPipeView
             TControlBlock& operator=(const TControlBlock& right);
         };
 
+        //--- TChunkHeader
+        struct TChunkHeader
+        {
+            uint32_t chunkLen;
+        };
+
    protected:
+
+        //---
+        struct TChunk
+        {
+            TChunkHeader* chunkHeader;
+            uint8_t*      chunkData;
+        };
+
         //---
         class TLock
         {
@@ -86,10 +105,18 @@ class TPipeView
         TControlBlock& getControlBlockView() { return *(reinterpret_cast<TControlBlock*>(mControlBlockData)); }
         bool attachControlBlock();
         bool getControlBlockDataPtr();
+        bool attachDataBlock(QSharedMemory::AccessMode accessMode = QSharedMemory::ReadWrite);
+        bool getDataBlockDataPtr();
+        TChunk getChunk(uint32_t idx);
 
         //---
         QSharedMemory         mControlBlock;
         void*                 mControlBlockData;
+
+        //---
+        QSharedMemory         mDataBlock;
+        void*                 mDataBlockData;
+
         IP_QPIPE_LIB::TStatus mStatus;
         IP_QPIPE_LIB::TStatus mLastError;
         TControlBlock         mControlBlockCache;
@@ -108,7 +135,8 @@ class TPipeViewTx : public TPipeView
 
     protected:
         unsigned notifyRx(const TPipeView::TControlBlock& controlBlock);
-        bool activateControlBlock(IP_QPIPE_LIB::TPipeTxParams& params);
+        bool activatePipe(IP_QPIPE_LIB::TPipeTxParams& params);
+        bool activateDataBlock(IP_QPIPE_LIB::TPipeTxParams& params);
 
         QSystemSemaphore* mSem[TPipeView::TControlBlock::MaxRxNum];
 };

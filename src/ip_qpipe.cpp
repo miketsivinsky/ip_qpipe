@@ -17,6 +17,13 @@
 
 bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlBlock& right)
 {
+    if(left.txBufEmpty != right.txBufEmpty)
+        return false;
+    if(left.txBufIdx != right.txBufIdx)
+        return false;
+    if(left.txGblIdx != right.txGblIdx)
+        return false;
+
     if((left.chunkNum != right.chunkNum) || (left.chunkSize != right.chunkSize))
         return false;
     if(left.txReady != right.txReady)
@@ -31,9 +38,12 @@ bool operator==(const TPipeView::TControlBlock& left, const TPipeView::TControlB
 //------------------------------------------------------------------------------
 TPipeView::TControlBlock::TControlBlock()
 {
-    chunkSize = 0;
-    chunkNum  = 0;
-    txReady   = 0;
+    txBufIdx   = 0;
+    txGblIdx   = 0;
+    txBufEmpty = 1;
+    chunkSize  = 0;
+    chunkNum   = 0;
+    txReady    = 0;
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         rxReady[k] = 0;
     }
@@ -44,6 +54,10 @@ TPipeView::TControlBlock& TPipeView::TControlBlock::operator=(const TControlBloc
 {
     if(this == &right)
         return *this;
+
+    txBufEmpty = right.txBufEmpty;
+    txGblIdx   = right.txGblIdx;
+    txBufIdx   = right.txBufIdx;
 
     chunkSize = right.chunkSize;
     chunkNum  = right.chunkNum;
@@ -59,6 +73,9 @@ void TPipeView::TControlBlock::printInfo(TControlBlock& controlBlock)
 {
     printf("\n");
     printf("--- pipe control block info ---\n");
+    printf("txBufEmpty: %5d\n",controlBlock.txBufEmpty);
+    printf("txBufIdx:  %6d\n",controlBlock.txBufIdx);
+    printf("txGblIdx:  %6d\n",controlBlock.txGblIdx);
     printf("chunkNum:  %6d\n",controlBlock.chunkNum);
     printf("chunkSize: %6d\n",controlBlock.chunkSize);
     printf("txReady:   %6d\n",controlBlock.txReady);
@@ -72,6 +89,10 @@ void TPipeView::TControlBlock::printInfo(TControlBlock& controlBlock)
 //------------------------------------------------------------------------------
 void TPipeView::TControlBlock::initTxView(TPipeView::TControlBlock& controlBlock, uint32_t chunkSize, uint32_t chunkNum)
 {
+    controlBlock.txBufEmpty = 1;
+    controlBlock.txGblIdx   = 0;
+    controlBlock.txBufIdx   = 0;
+
     controlBlock.chunkSize = chunkSize;
     controlBlock.chunkNum  = chunkNum;
     controlBlock.txReady   = 1;
@@ -93,7 +114,11 @@ IP_QPIPE_LIB::TStatus TPipeView::TControlBlock::attachTxView(TControlBlock& cont
             return IP_QPIPE_LIB::AttachTxParamsError;
         }
     }
-    controlBlock.txReady   = 1;
+    controlBlock.txBufEmpty = 1;
+    controlBlock.txGblIdx   = 0;
+    controlBlock.txBufIdx   = 0;
+
+    controlBlock.txReady    = 1;
     return IP_QPIPE_LIB::Ok;
 }
 
@@ -172,6 +197,8 @@ void TPipeViewRxNotifier::run()
 TPipeView::TPipeView(unsigned key) :
                                           mControlBlock(QString::number(key) +QString("_control")),
                                           mControlBlockData(0),
+                                          mDataBlock(QString::number(key) +QString("_data")),
+                                          mDataBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
                                           mLastError(IP_QPIPE_LIB::NotInit),
                                           mControlBlockCache(),
@@ -212,6 +239,39 @@ bool TPipeView::getControlBlockDataPtr()
 }
 
 //------------------------------------------------------------------------------
+bool TPipeView::attachDataBlock(QSharedMemory::AccessMode accessMode)
+{
+    if(!mDataBlock.attach(accessMode)) {
+        mLastError = mStatus = IP_QPIPE_LIB::AttachError;
+        return false;
+    }
+    return true;
+}
+
+//------------------------------------------------------------------------------
+bool TPipeView::getDataBlockDataPtr()
+{
+    if(!(mDataBlockData = mDataBlock.data())) {
+        mDataBlock.detach();
+        mLastError = mStatus = IP_QPIPE_LIB::DataAccessError;
+        return false;
+    }
+    return true;
+}
+
+//------------------------------------------------------------------------------
+TPipeView::TChunk TPipeView::getChunk(uint32_t idx)
+{
+    TChunk chunk = { 0, 0 };
+    if(mDataBlockData && mControlBlockCache.chunkNum && mControlBlockCache.chunkSize) {
+        void* chunkPtr = static_cast<uint8_t*>(mDataBlockData) + idx*(sizeof(TChunkHeader) + mControlBlockCache.chunkSize);
+        chunk.chunkHeader = static_cast<TChunkHeader*>(chunkPtr);
+        chunk.chunkData   = static_cast<uint8_t*>(chunkPtr) + sizeof(TChunkHeader);
+    }
+    return chunk;
+}
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -223,7 +283,7 @@ TPipeViewTx::TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params) : TPipeView(params
     }
 
     //---
-    if(!activateControlBlock(params))
+    if(!activatePipe(params))
         return;
 
     //---
@@ -259,7 +319,7 @@ TPipeViewTx::~TPipeViewTx()
 }
 
 //------------------------------------------------------------------------------
-bool TPipeViewTx::activateControlBlock(IP_QPIPE_LIB::TPipeTxParams& params)
+bool TPipeViewTx::activatePipe(IP_QPIPE_LIB::TPipeTxParams& params)
 {
     uint32_t chunkSize = params.pipeInfo.chunkSize;
     uint32_t chunkNum  = params.pipeInfo.chunkNum;
@@ -268,7 +328,7 @@ bool TPipeViewTx::activateControlBlock(IP_QPIPE_LIB::TPipeTxParams& params)
     if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
         if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
             #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
-                qDebug() << "[ERROR] [TPipeViewTx activateControlBlock] at QSharedMemory::create";
+                qDebug() << "[ERROR] [TPipeViewTx activatePipe] at QSharedMemory::create";
             #endif
             mLastError = mStatus = IP_QPIPE_LIB::CreateError;
             return false;
@@ -278,9 +338,11 @@ bool TPipeViewTx::activateControlBlock(IP_QPIPE_LIB::TPipeTxParams& params)
         if(!getControlBlockDataPtr())
             return false;
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
+        if(!activateDataBlock(params))
+            return false;
         if((mLastError = mStatus = TControlBlock::attachTxView(getControlBlockView(),chunkSize, chunkNum)) != IP_QPIPE_LIB::Ok)
             return false;
+        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
         params.isCreated = false;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
             // qDebug() << "[INFO] [tx][attached] key:" << key();
@@ -289,12 +351,41 @@ bool TPipeViewTx::activateControlBlock(IP_QPIPE_LIB::TPipeTxParams& params)
         if(!getControlBlockDataPtr())
             return false;
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
+        if(!activateDataBlock(params))
+            return false;
         TControlBlock::initTxView(getControlBlockView(),chunkSize, chunkNum);
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
             // qDebug() << "[INFO] [tx][created] key:" << key();
         #endif
+        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
         params.isCreated = true;
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
+    }
+    return true;
+}
+
+//------------------------------------------------------------------------------
+bool TPipeViewTx::activateDataBlock(IP_QPIPE_LIB::TPipeTxParams& params)
+{
+    uint32_t chunkSize = params.pipeInfo.chunkSize;
+    uint32_t chunkNum  = params.pipeInfo.chunkNum;
+
+    //--- data pipe exist, viewTx attached
+    if(!mDataBlock.create(chunkNum*(sizeof(TPipeView::TChunkHeader) + chunkSize),QSharedMemory::ReadWrite)) {
+        if(mDataBlock.error() != QSharedMemory::AlreadyExists) {
+            #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
+                qDebug() << "[ERROR] [TPipeViewTx activateDataBlock] at QSharedMemory::create";
+            #endif
+            mLastError = mStatus = IP_QPIPE_LIB::CreateError;
+            return false;
+        }
+        if(!attachDataBlock())
+            return false;
+        if(!getDataBlockDataPtr())
+            return false;
+    } else { //--- data pipe not exist, viewTx created
+        if(!getDataBlockDataPtr())
+            return false;
     }
     return true;
 }
