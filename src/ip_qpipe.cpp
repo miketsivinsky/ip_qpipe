@@ -217,45 +217,14 @@ bool TPipeView::getControlBlockDataPtr()
 //------------------------------------------------------------------------------
 TPipeViewTx::TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params) : TPipeView(params.pipeKey)
 {
-    uint32_t chunkSize = params.pipeInfo.chunkSize;
-    uint32_t chunkNum  = params.pipeInfo.chunkNum;
-
+    //---
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         mSem[k] = 0;
     }
 
-    //--- pipe exist, viewTx attached
-    if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
-        if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
-            #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
-                qDebug() << "[ERROR] [TPipeViewTx constructor] at QSharedMemory::create";
-            #endif
-            mLastError = mStatus = IP_QPIPE_LIB::CreateError;
-            return;
-        }
-        if(!attachControlBlock())
-            return;
-        if(!getControlBlockDataPtr())
-            return;
-        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
-        if((mLastError = mStatus = TControlBlock::attachTxView(getControlBlockView(),chunkSize, chunkNum)) != IP_QPIPE_LIB::Ok)
-            return;
-        params.isCreated = false;
-        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            // qDebug() << "[INFO] [tx][attached] key:" << key();
-        #endif
-    } else { //--- pipe not exist, viewTx created
-        if(!getControlBlockDataPtr())
-            return;
-        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        TControlBlock::initTxView(getControlBlockView(),chunkSize, chunkNum);
-        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            // qDebug() << "[INFO] [tx][created] key:" << key();
-        #endif
-        params.isCreated = true;
-        mLastError = mStatus = IP_QPIPE_LIB::Ok;
-    }
+    //---
+    if(!activateControlBlock(params))
+        return;
 
     //---
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
@@ -288,6 +257,48 @@ TPipeViewTx::~TPipeViewTx()
         qDebug() << "[INFO] [TPipeViewTx destructor] key:" << key();
     #endif
 }
+
+//------------------------------------------------------------------------------
+bool TPipeViewTx::activateControlBlock(IP_QPIPE_LIB::TPipeTxParams& params)
+{
+    uint32_t chunkSize = params.pipeInfo.chunkSize;
+    uint32_t chunkNum  = params.pipeInfo.chunkNum;
+
+    //--- pipe exist, viewTx attached
+    if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
+        if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
+            #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
+                qDebug() << "[ERROR] [TPipeViewTx activateControlBlock] at QSharedMemory::create";
+            #endif
+            mLastError = mStatus = IP_QPIPE_LIB::CreateError;
+            return false;
+        }
+        if(!attachControlBlock())
+            return false;
+        if(!getControlBlockDataPtr())
+            return false;
+        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
+        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
+        if((mLastError = mStatus = TControlBlock::attachTxView(getControlBlockView(),chunkSize, chunkNum)) != IP_QPIPE_LIB::Ok)
+            return false;
+        params.isCreated = false;
+        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
+            // qDebug() << "[INFO] [tx][attached] key:" << key();
+        #endif
+    } else { //--- pipe not exist, viewTx created
+        if(!getControlBlockDataPtr())
+            return false;
+        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
+        TControlBlock::initTxView(getControlBlockView(),chunkSize, chunkNum);
+        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
+            // qDebug() << "[INFO] [tx][created] key:" << key();
+        #endif
+        params.isCreated = true;
+        mLastError = mStatus = IP_QPIPE_LIB::Ok;
+    }
+    return true;
+}
+
 
 //------------------------------------------------------------------------------
 unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)

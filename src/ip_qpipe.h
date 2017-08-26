@@ -108,6 +108,7 @@ class TPipeViewTx : public TPipeView
 
     protected:
         unsigned notifyRx(const TPipeView::TControlBlock& controlBlock);
+        bool activateControlBlock(IP_QPIPE_LIB::TPipeTxParams& params);
 
         QSystemSemaphore* mSem[TPipeView::TControlBlock::MaxRxNum];
 };
