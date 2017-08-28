@@ -27,6 +27,10 @@ namespace IP_QPIPE_LIB
         AttachTxParamsError = -7,  // previously created pipe params != current attached pipe params (actual only for 'writer')
         AttachTxExistError  = -8,  // attemt to attach as 'writer' when another one writer exist now
         AttachRxExistError  = -9,  // attemt to attach as 'reader' but number of existed 'readers' over limit
+        PipeNotExistError   = -10, // pipe not exist
+        RxNotPresentError   = -11, // attempt to send data when 'rxMustBePresent' set to 'true' and no any rx pipe views
+        DataParamError      = -12  // bad data size(rx/tx) or bad buf ptr (tx)
+
     } TStatus;
 
     //---
@@ -59,6 +63,19 @@ namespace IP_QPIPE_LIB
         unsigned  pipeKey;
         bool      isCreated;
         TPipeInfo pipeInfo;
+    };
+
+    //---
+    struct TPipeTxTransfer
+    {
+        unsigned pipeKey;
+        uint8_t* dataBuf;
+        uint32_t dataLen;
+        bool     rxMustBePresent;
+
+        //--- DEBUG
+        uint32_t txBufIdx;
+        uint32_t txGblIdx;
     };
 
     //---

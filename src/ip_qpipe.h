@@ -52,6 +52,7 @@ class TPipeView
         bool isPipeOk() const { return mStatus == IP_QPIPE_LIB::Ok; }
         IP_QPIPE_LIB::TStatus error() const { return mLastError; }
         unsigned key() const { return mKey; }
+        bool isRxPresent() { return TControlBlock::isRxPresent(getControlBlockView()); }
 
         //--- TControlBlock
         struct TControlBlock : public IP_QPIPE_LIB::TPipeInfo
@@ -67,6 +68,7 @@ class TPipeView
             static IP_QPIPE_LIB::TStatus attachTxView(TControlBlock& controlBlock, uint32_t chunkSize, uint32_t chunkNum);
             static void initRxView(TControlBlock& controlBlock);
             static IP_QPIPE_LIB::TStatus attachRxView(TControlBlock& controlBlock,int& rxId);
+            static bool isRxPresent(TControlBlock& controlBlock);
 
             //---
             TControlBlock();
@@ -132,6 +134,7 @@ class TPipeViewTx : public TPipeView
     public:
         TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         ~TPipeViewTx();
+        IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
 
     protected:
         unsigned notifyRx(const TPipeView::TControlBlock& controlBlock);
@@ -171,6 +174,7 @@ class TPipeViewPool
         static bool isPipeViewRxExist(unsigned key) { return (getPipeView(key,rxPool()) != 0); }
         static IP_QPIPE_LIB::TStatus createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         static IP_QPIPE_LIB::TStatus createPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params);
+        static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
 
     private:
         typedef std::map<unsigned,TPipeView*> TPipeViewPoolMap;

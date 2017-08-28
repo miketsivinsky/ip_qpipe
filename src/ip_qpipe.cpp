@@ -2,6 +2,7 @@
 //------------------------------------------------------------------------------
 
 #include <cstdio>
+#include <cstring>
 #include <type_traits> /*TEST*/
 
 #include <QtGlobal>
@@ -145,6 +146,16 @@ IP_QPIPE_LIB::TStatus TPipeView::TControlBlock::attachRxView(TControlBlock& cont
         }
     }
     return IP_QPIPE_LIB::AttachRxExistError;
+}
+
+//------------------------------------------------------------------------------
+bool TPipeView::TControlBlock::isRxPresent(TControlBlock& controlBlock)
+{
+    for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
+        if(controlBlock.rxReady[k])
+            return true;
+    }
+    return false;
 }
 
 //------------------------------------------------------------------------------
@@ -390,7 +401,6 @@ bool TPipeViewTx::activateDataBlock(IP_QPIPE_LIB::TPipeTxParams& params)
     return true;
 }
 
-
 //------------------------------------------------------------------------------
 unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 {
@@ -402,6 +412,50 @@ unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
         }
     }
     return num;
+}
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
+{
+    mLastError = IP_QPIPE_LIB::Ok;
+    // 1. check len & bufPtr
+    if(txTransfer.rxMustBePresent && isRxPresent()) {
+        mLastError = IP_QPIPE_LIB::RxNotPresentError;
+        return mLastError;
+    }
+
+    // 2. check len & bufPtr
+    if((txTransfer.dataLen > mControlBlockCache.chunkSize ) || (txTransfer.dataLen == 0) || (!txTransfer.dataBuf)) {
+        mLastError = IP_QPIPE_LIB::DataParamError;
+        return mLastError;
+    }
+
+    // 3. lock control & data
+    TLock lockControlBlock(mControlBlock);
+    TLock lockDataBlock(mDataBlock);
+
+    // 4. get chunk & write data
+    TControlBlock& controlBlockView = getControlBlockView();
+    TChunk chunk = getChunk(controlBlockView.txBufIdx);
+    if(!chunk.chunkData || !chunk.chunkHeader) {
+        mLastError = IP_QPIPE_LIB::DataAccessError;
+        return mLastError;
+    }
+    std::memcpy(chunk.chunkData,txTransfer.dataBuf,txTransfer.dataLen);
+    chunk.chunkHeader->chunkLen = txTransfer.dataLen;
+
+    // 5. modify txBufIdx, txGblIdx, txBufEmpty
+    if(controlBlockView.txBufEmpty)
+        controlBlockView.txBufEmpty = 0;
+    controlBlockView.txBufIdx = ((controlBlockView.txBufIdx + 1) == controlBlockView.chunkNum) ? 0 : (controlBlockView.txBufIdx + 1);
+    ++controlBlockView.txGblIdx;
+    mControlBlockCache = controlBlockView;
+
+    // 6. only for debug purposes, not need for real work
+    txTransfer.txBufIdx = controlBlockView.txBufIdx;
+    txTransfer.txGblIdx = controlBlockView.txGblIdx;
+
+    return mLastError;
 }
 
 //------------------------------------------------------------------------------
@@ -548,3 +602,13 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(IP_QPIPE_LIB::TPipeRxParam
     return IP_QPIPE_LIB::Ok;
 }
 
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
+{
+    TPipeViewTx* pipeTxView = static_cast<TPipeViewTx*>(getPipeView(txTransfer.pipeKey,txPool()));
+    if(!pipeTxView) {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
+    return pipeTxView->sendData(txTransfer);
+}

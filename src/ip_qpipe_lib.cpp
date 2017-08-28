@@ -19,4 +19,10 @@ namespace IP_QPIPE_LIB
     {
         return TPipeViewPool::createPipeViewRx(params);
     }
+
+    //------------------------------------------------------------------------------
+    IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus sendData(TPipeTxTransfer& txTransfer)
+    {
+        return TPipeViewPool::sendData(txTransfer);
+    }
 }
