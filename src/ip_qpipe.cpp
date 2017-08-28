@@ -274,7 +274,7 @@ bool TPipeView::getDataBlockDataPtr()
 TPipeView::TChunk TPipeView::getChunk(uint32_t idx)
 {
     TChunk chunk = { 0, 0 };
-    if(mStatus = IP_QPIPE_LIB::Ok) {
+    if(mStatus == IP_QPIPE_LIB::Ok) {
         void* chunkPtr = static_cast<uint8_t*>(mDataBlockData) + idx*(sizeof(TChunkHeader) + mControlBlockCache.chunkSize);
         chunk.chunkHeader = static_cast<TChunkHeader*>(chunkPtr);
         chunk.chunkData   = static_cast<uint8_t*>(chunkPtr) + sizeof(TChunkHeader);
