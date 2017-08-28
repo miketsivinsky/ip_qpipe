@@ -418,8 +418,8 @@ unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
 {
     mLastError = IP_QPIPE_LIB::Ok;
-    // 1. check len & bufPtr
-    if(txTransfer.rxMustBePresent && isRxPresent()) {
+    // 1. check present of rxPipe views (if need)
+    if(txTransfer.rxMustBePresent && !isRxPresent()) {
         mLastError = IP_QPIPE_LIB::RxNotPresentError;
         return mLastError;
     }
