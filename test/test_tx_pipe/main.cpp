@@ -7,7 +7,7 @@
 #include "ip_qpipe_lib.h"
 
 //------------------------------------------------------------------------------
-const unsigned TransferNum = 10;
+const unsigned TransferNum = 100;
 
 //------------------------------------------------------------------------------
 void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxParams& params);
@@ -50,13 +50,10 @@ int main(int argc, char* argv[]) {
             printf("[ERROR] IP_QPIPE_LIB::sendData, status: %2d\n",status);
             break;
         }
-
-        printf("-------------------------\n");
-        printf("[INFO] data sent to pipe; key: %6d, packet: %6d\n",txTransfer.pipeKey,k);
-        printf("[INFO] txBufIdx: %6d\n",txTransfer.txBufIdx);
-        printf("[INFO] txGblIdx: %6d\n",txTransfer.txGblIdx);
+        printf("[INFO] [data sent] packet: %6d, txBufIdx: %6d, txGblIdx: %6d\n",k,txTransfer.txBufIdx, txTransfer.txGblIdx);
     }
 
+    printf("\n");
     //---
     QThread::sleep(sTime);
     delete [] txBuf;
