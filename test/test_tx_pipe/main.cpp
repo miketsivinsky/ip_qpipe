@@ -1,9 +1,13 @@
+#include <cstdint>
 #include <cstdlib>
 
 #include <QThread>
 
 #include "../common/RawStreamTester.h"
 #include "ip_qpipe_lib.h"
+
+//------------------------------------------------------------------------------
+const unsigned TransferNum = 10;
 
 //------------------------------------------------------------------------------
 void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxParams& params);
@@ -25,8 +29,37 @@ int main(int argc, char* argv[]) {
 
     IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewTx(txParams);
     printPipeTxInfo(status,txParams);
+    if(status != IP_QPIPE_LIB::Ok) {
+        printf("[ERROR] IP_QPIPE_LIB::createPipeViewTx, status: %2d\n",status);
+        return 0;
+    }
 
+    //---
+    IP_QPIPE_LIB::TPipeTxTransfer txTransfer;
+    uint8_t* txBuf = new uint8_t [txParams.pipeInfo.chunkSize];
+
+    for(auto k = 0; k < TransferNum; ++k) {
+        //--- parameters setup
+        txTransfer.dataBuf         = txBuf;
+        txTransfer.dataLen         = txParams.pipeInfo.chunkSize;
+        txTransfer.pipeKey         = txParams.pipeKey;
+        txTransfer.rxMustBePresent = true;
+
+        status = IP_QPIPE_LIB::sendData(txTransfer);
+        if(status != IP_QPIPE_LIB::Ok) {
+            printf("[ERROR] IP_QPIPE_LIB::sendData, status: %2d\n",status);
+            break;
+        }
+
+        printf("-------------------------\n");
+        printf("[INFO] data sent to pipe; key: %6d, packet: %6d\n",txTransfer.pipeKey,k);
+        printf("[INFO] txBufIdx: %6d\n",txTransfer.txBufIdx);
+        printf("[INFO] txGblIdx: %6d\n",txTransfer.txGblIdx);
+    }
+
+    //---
     QThread::sleep(sTime);
+    delete [] txBuf;
     return 0;
 }
 
