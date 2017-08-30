@@ -208,6 +208,7 @@ void TPipeViewRxNotifier::run()
         }
 
         if(mPipeViewRx.mNotifyFunc) {
+            qDebug() << "[slon]" << mPipeViewRx.mControlBlockCache.txGblIdx;
             (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
         }
     }

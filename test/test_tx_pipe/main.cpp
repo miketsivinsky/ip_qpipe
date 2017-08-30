@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
             break;
         }
         printf("[INFO] [data sent] packet: %6d, txBufIdx: %6d, txGblIdx: %6d\n",k,txTransfer.txBufIdx, txTransfer.txGblIdx);
+        QThread::msleep(50);
     }
 
     printf("\n");
