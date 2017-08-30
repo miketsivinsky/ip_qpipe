@@ -475,6 +475,16 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
         return;
 
     //---
+    if(mDataBlock.attach(QSharedMemory::ReadOnly)) {
+        if(!getDataBlockDataPtr()) {
+            return;
+        }
+    } else {
+        // not error - tx not started yet
+        //qDebug() << "slon" << id();
+    }
+
+    //---
     mNotifier.setKeyPipeId(id());
     mControlBlockCache = getControlBlockView(); // not quarded
     params.pipeId   = id();
