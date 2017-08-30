@@ -7,7 +7,7 @@
 #include "ip_qpipe_lib.h"
 
 //------------------------------------------------------------------------------
-const unsigned TransferNum = 100;
+const unsigned TransferNum = 8;
 
 //------------------------------------------------------------------------------
 void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxParams& params);

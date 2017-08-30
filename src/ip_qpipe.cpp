@@ -451,7 +451,10 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
     ++controlBlockView.txGblIdx;
     mControlBlockCache = controlBlockView;
 
-    // 6. only for debug purposes, not need for real work
+    // 6. send notification to receivers
+    notifyRx(mControlBlockCache);
+
+    // 7. only for debug purposes, not need for real work
     txTransfer.txBufIdx = controlBlockView.txBufIdx;
     txTransfer.txGblIdx = controlBlockView.txGblIdx;
 
