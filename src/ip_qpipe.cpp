@@ -467,39 +467,10 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
                                                                 mNotifier(*this),
                                                                 mNotifyFunc(params.pipeRxNotifyFunc)
 {
-    //--- pipe exist, viewRx attached
-    if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
-        if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
-            #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
-                qDebug() << "[ERROR] [TPipeViewRx constructor] at QSharedMemory::create";
-            #endif
-            mLastError = mStatus = IP_QPIPE_LIB::CreateError;
-            return;
-        }
-        if(!attachControlBlock())
-            return;
-        if(!getControlBlockDataPtr())
-            return;
-        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
-        if((mLastError = mStatus = TControlBlock::attachRxView(getControlBlockView(),mId)) != IP_QPIPE_LIB::Ok)
-            return;
-        params.isCreated = false;
-        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [rx][attached] key:" << key() << "id:" << id();
-        #endif
-    } else { //--- pipe not exist, viewRx created
-        if(!getControlBlockDataPtr())
-            return;
-        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
-        TControlBlock::initRxView(getControlBlockView());
-        mId = 0;
-        params.isCreated = true;
-        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [rx][created] key:" << key() << "id:" << id();
-        #endif
-        mLastError = mStatus = IP_QPIPE_LIB::Ok;
-    }
+    //---
+    if(!activatePipe(params))
+        return;
+
     //---
     mNotifier.setKeyPipeId(id());
     mControlBlockCache = getControlBlockView(); // not quarded
@@ -519,6 +490,45 @@ TPipeViewRx::~TPipeViewRx()
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id();
     #endif
+}
+
+//------------------------------------------------------------------------------
+bool TPipeViewRx::activatePipe(IP_QPIPE_LIB::TPipeRxParams& params)
+{
+    //--- pipe exist, viewRx attached
+    if(!mControlBlock.create(sizeof(TPipeView::TControlBlock),QSharedMemory::ReadWrite)) {
+        if(mControlBlock.error() != QSharedMemory::AlreadyExists) {
+            #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
+                qDebug() << "[ERROR] [TPipeViewTx activatePipe] at QSharedMemory::create";
+            #endif
+            mLastError = mStatus = IP_QPIPE_LIB::CreateError;
+            return false;
+        }
+        if(!attachControlBlock())
+            return false;
+        if(!getControlBlockDataPtr())
+            return false;
+        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
+        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
+        if((mLastError = mStatus = TControlBlock::attachRxView(getControlBlockView(),mId)) != IP_QPIPE_LIB::Ok)
+            return false;
+        params.isCreated = false;
+        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
+            qDebug() << "[INFO] [rx][attached] key:" << key() << "id:" << id();
+        #endif
+    } else { //--- pipe not exist, viewRx created
+        if(!getControlBlockDataPtr())
+            return false;
+        TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
+        TControlBlock::initRxView(getControlBlockView());
+        mId = 0;
+        params.isCreated = true;
+        #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
+            qDebug() << "[INFO] [rx][created] key:" << key() << "id:" << id();
+        #endif
+        mLastError = mStatus = IP_QPIPE_LIB::Ok;
+    }
+    return true;
 }
 
 //------------------------------------------------------------------------------

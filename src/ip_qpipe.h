@@ -158,6 +158,7 @@ class TPipeViewRx : public TPipeView
 
     protected:
         IP_QPIPE_LIB::TTxEvent whatTxEvent();
+        bool activatePipe(IP_QPIPE_LIB::TPipeRxParams& params);
 
         int                               mId;
         TPipeViewRxNotifier               mNotifier;
