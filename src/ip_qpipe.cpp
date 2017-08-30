@@ -194,6 +194,19 @@ void TPipeViewRxNotifier::run()
         if(mExit)
             return;
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
+        if(!mPipeViewRx.mDataBlockData) {
+            if((txEvent == IP_QPIPE_LIB::TxConnected) || (txEvent == IP_QPIPE_LIB::TxTransfer)) {
+                if(mPipeViewRx.attachDataBlock(QSharedMemory::ReadOnly) && mPipeViewRx.getDataBlockDataPtr()) {
+                    qDebug() << "[INFO] [TPipeViewRxNotifier] DataBlock attached" << mPipeViewRx.id();
+                } else {
+                    #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
+                        qDebug() << "[ERROR] [TPipeViewRxNotifier] DataBlock attach error";
+                    #endif
+                    return;
+                }
+            }
+        }
+
         if(mPipeViewRx.mNotifyFunc) {
             (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
         }
