@@ -197,6 +197,7 @@ void TPipeViewRxNotifier::run()
         if(!mPipeViewRx.mDataBlockData) {
             if((txEvent == IP_QPIPE_LIB::TxConnected) || (txEvent == IP_QPIPE_LIB::TxTransfer)) {
                 if(mPipeViewRx.attachDataBlock(QSharedMemory::ReadOnly) && mPipeViewRx.getDataBlockDataPtr()) {
+                    mPipeViewRx.mRxGblIdx = 0;
                     qDebug() << "[INFO] [TPipeViewRxNotifier] DataBlock attached" << mPipeViewRx.id();
                 } else {
                     #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
@@ -204,6 +205,12 @@ void TPipeViewRxNotifier::run()
                     #endif
                     return;
                 }
+            }
+        } else {
+            if(txEvent == IP_QPIPE_LIB::TxConnected) {
+                // txPipe view was created before, than txPipe was unconnedcted, than rxPipe (this) was created
+                // (with already existed DataBlock) and now txPipe view connect again
+                mPipeViewRx.mRxGblIdx = 0;
             }
         }
 
@@ -482,7 +489,8 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
 TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params.pipeKey),
                                                                 mId(-1),
                                                                 mNotifier(*this),
-                                                                mNotifyFunc(params.pipeRxNotifyFunc)
+                                                                mNotifyFunc(params.pipeRxNotifyFunc),
+                                                                mRxGblIdx(0)
 {
     //---
     if(!activatePipe(params))

@@ -163,6 +163,7 @@ class TPipeViewRx : public TPipeView
         int                               mId;
         TPipeViewRxNotifier               mNotifier;
         IP_QPIPE_LIB::PipeRxNotifyFunc    mNotifyFunc;
+        uint32_t                          mRxGblIdx;
 
 };
 
