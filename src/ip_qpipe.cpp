@@ -223,9 +223,13 @@ void TPipeViewRxNotifier::run()
             (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
         }
 
+        //--- debug
+        if(txEvent == IP_QPIPE_LIB::TxTransfer) {
+            qDebug() << "[slon 0]" << mPipeViewRx.mControlBlockCache.txGblIdx;
+        }
         //--- rx semaphore singaling
         if((txEvent == IP_QPIPE_LIB::TxTransfer) && mPipeViewRx.isRxSemSignalEna()) {
-            qDebug() << "[slon]" << mPipeViewRx.mControlBlockCache.txGblIdx;
+            qDebug() << "   [slon 1] ---" << mPipeViewRx.mControlBlockCache.txGblIdx;
             mPipeViewRx.mRxSem.release();
         }
     }

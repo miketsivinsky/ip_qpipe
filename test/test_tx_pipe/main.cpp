@@ -7,7 +7,7 @@
 #include "ip_qpipe_lib.h"
 
 //------------------------------------------------------------------------------
-const unsigned TransferNum = 8;
+const unsigned TransferNum = 16;
 
 //------------------------------------------------------------------------------
 void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxParams& params);
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     //---
     IP_QPIPE_LIB::TPipeTxParams txParams;
     txParams.pipeKey            = 2307;
-    txParams.pipeInfo.chunkNum  = 32;
+    txParams.pipeInfo.chunkNum  = 8;
     txParams.pipeInfo.chunkSize = 1024;
 
     IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewTx(txParams);
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
             break;
         }
         printf("[INFO] [data sent] packet: %6d, txBufIdx: %6d, txGblIdx: %6d\n",k,txTransfer.txBufIdx, txTransfer.txGblIdx);
-        QThread::msleep(50);
+        //QThread::msleep(50);
     }
 
     printf("\n");
