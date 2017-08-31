@@ -31,7 +31,8 @@ namespace IP_QPIPE_LIB
         PipeNotExistError   = -10, // pipe not exist
         RxNotPresentError   = -11, // attempt to send data when 'rxMustBePresent' set to 'true' and no any rx pipe views
         DataParamError      = -12, // bad data size(rx/tx) or bad buf ptr (tx)
-        TimeoutError        = -13  // rx
+        TimeoutError        = -13, // rx
+        NoRxDataError       = -14  // "unpossible" error - no really data to read but we have info "data present"
 
     } TStatus;
 

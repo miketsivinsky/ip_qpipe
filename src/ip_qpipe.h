@@ -162,7 +162,8 @@ class TPipeViewRx : public TPipeView
         IP_QPIPE_LIB::TTxEvent whatTxEvent();
         bool activatePipe(IP_QPIPE_LIB::TPipeRxParams& params);
         bool isRxSemSignalEna();
-        uint32_t getIdxDelta();
+        uint32_t getIdxDelta() const { return (mControlBlockCache.txGblIdx - mRxGblIdx); }
+        uint32_t computeRxBufIdx(uint32_t idxDelta) const;
 
         int                               mId;
         TPipeViewRxNotifier               mNotifier;

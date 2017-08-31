@@ -633,18 +633,42 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
     TLock lockDataBlock(mDataBlock);
     mControlBlockCache = getControlBlockView();
 
-    // 3.
-    qDebug() << "[readData]" << mControlBlockCache.txGblIdx << mControlBlockCache.txBufIdx;
+    // 3. compute idxDelta
+    uint32_t idxDelta = getIdxDelta();
+    if(idxDelta == 0) {
+        mLastError = IP_QPIPE_LIB::NoRxDataError;
+        return mLastError;
+    }
+
+    // 4. correct RxSem signal number
+    int32_t signalSemDelta = mRxSem.available() - idxDelta;
+    if(signalSemDelta > 0) {
+        mRxSem.acquire(signalSemDelta);
+    }
+
+    // 5. compute "local" (buf) rx idx and advance mRxGblIdx
+    uint32_t rxBufIdx = computeRxBufIdx(idxDelta);
+    ++mRxGblIdx;
+
+    //qDebug() << "[readData]" << mControlBlockCache.txGblIdx << mControlBlockCache.txBufIdx;
 
     return mLastError;
 }
 
 //------------------------------------------------------------------------------
-uint32_t TPipeViewRx::getIdxDelta()
+uint32_t TPipeViewRx::computeRxBufIdx(uint32_t idxDelta) const
 {
-    return 0;
+    uint32_t rxBufIdx;
+    if(idxDelta >= mControlBlockCache.chunkNum) {
+        rxBufIdx = ((mControlBlockCache.txBufIdx + 1) == mControlBlockCache.chunkNum) ? 0 : (mControlBlockCache.txBufIdx + 1);
+    } else {
+        if(idxDelta <= mControlBlockCache.txBufIdx)
+            rxBufIdx = mControlBlockCache.txBufIdx - idxDelta;
+        else
+            rxBufIdx = mControlBlockCache.chunkNum - (idxDelta - mControlBlockCache.txBufIdx);
+    }
+    return rxBufIdx;
 }
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
