@@ -8,6 +8,7 @@
 
 //------------------------------------------------------------------------------
 const unsigned TransferNum = 16;
+const unsigned TxDelay     = 40;
 
 //------------------------------------------------------------------------------
 void printPipeTxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeTxParams& params);
@@ -51,7 +52,9 @@ int main(int argc, char* argv[]) {
             break;
         }
         printf("[INFO] [data sent] packet: %6d, txBufIdx: %6d, txGblIdx: %6d\n",k,txTransfer.txBufIdx, txTransfer.txGblIdx);
-        //QThread::msleep(50);
+        if(TxDelay) {
+            QThread::msleep(TxDelay);
+        }
     }
 
     printf("\n");
