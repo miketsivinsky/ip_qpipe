@@ -1,14 +1,25 @@
 #include <cstdlib>
 
 #include <QThread>
+#include <QSemaphore>
 
 #include "../common/RawStreamTester.h"
 #include "ip_qpipe_lib.h"
+
+//------------------------------------------------------------------------------
+const bool     SyncMode    = true;
+const unsigned TransferNum = 16;
+const unsigned Timeout     = 5000;
+const unsigned RxBufSize   = 4*1024;
 
 
 //------------------------------------------------------------------------------
 void printPipeRxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeRxParams& params);
 void PipeRxNotifyFunc(unsigned pipeKey, IP_QPIPE_LIB::TTxEvent txEvent, int pipeId, const IP_QPIPE_LIB::TPipeInfo& pipeInfo);
+
+//------------------------------------------------------------------------------
+uint8_t    RxBuf[RxBufSize];
+QSemaphore ReadFrameSem;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -26,8 +37,30 @@ int main(int argc, char* argv[]) {
     rxParams.pipeRxNotifyFunc   = PipeRxNotifyFunc;
 
     IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewRx(rxParams);
+    if(status != IP_QPIPE_LIB::Ok) {
+        printf("[ERROR] IP_QPIPE_LIB::createPipeViewRx, status: %2d\n",status);
+        return 0;
+    }
     printPipeRxInfo(status,rxParams);
 
+    //---
+    IP_QPIPE_LIB::TPipeRxTransfer rxTransfer;
+    for(auto k = 0; k < TransferNum; ++k) {
+        if(SyncMode || ReadFrameSem.tryAcquire(1,Timeout)) {
+            rxTransfer.pipeKey = rxParams.pipeKey;
+            rxTransfer.dataBuf = RxBuf;
+            rxTransfer.dataLen = RxBufSize;
+            status = IP_QPIPE_LIB::readData(rxTransfer);
+            if(status != IP_QPIPE_LIB::Ok) {
+                printf("[ERROR] IP_QPIPE_LIB::readData, status: %2d\n",status);
+                break;
+            }
+            printf("[INFO] [data read] packet: %6d\n",k);
+        } else {
+            printf("[WARN] Timeout Expired\n");
+            break;
+        }
+    }
     QThread::sleep(sTime);
     return 0;
 }

@@ -225,11 +225,11 @@ void TPipeViewRxNotifier::run()
 
         //--- debug
         if(txEvent == IP_QPIPE_LIB::TxTransfer) {
-            qDebug() << "[slon 0]" << mPipeViewRx.mControlBlockCache.txGblIdx;
+            //qDebug() << "[slon 0]" << mPipeViewRx.mControlBlockCache.txGblIdx;
         }
         //--- rx semaphore singaling
         if((txEvent == IP_QPIPE_LIB::TxTransfer) && mPipeViewRx.isRxSemSignalEna()) {
-            qDebug() << "   [slon 1] ---" << mPipeViewRx.mControlBlockCache.txGblIdx;
+            //qDebug() << "   [slon 1] ---" << mPipeViewRx.mControlBlockCache.txGblIdx;
             mPipeViewRx.mRxSem.release();
         }
     }
@@ -634,6 +634,7 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
     mControlBlockCache = getControlBlockView();
 
     // 3.
+    qDebug() << "[readData]" << mControlBlockCache.txGblIdx << mControlBlockCache.txBufIdx;
 
     return mLastError;
 }
