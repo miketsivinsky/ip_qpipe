@@ -9,6 +9,7 @@
 #include <QThread>
 #include <QSharedMemory>
 #include <QSystemSemaphore>
+#include <QSemaphore>
 
 #include "ip_qpipe_def.h"
 
@@ -159,13 +160,13 @@ class TPipeViewRx : public TPipeView
     protected:
         IP_QPIPE_LIB::TTxEvent whatTxEvent();
         bool activatePipe(IP_QPIPE_LIB::TPipeRxParams& params);
+        bool isRxSemSignalEna();
 
         int                               mId;
         TPipeViewRxNotifier               mNotifier;
         IP_QPIPE_LIB::PipeRxNotifyFunc    mNotifyFunc;
         uint32_t                          mRxGblIdx;
-        //QSemaphore                        mRSem
-
+        QSemaphore                        mRxSem;
 };
 
 //------------------------------------------------------------------------------

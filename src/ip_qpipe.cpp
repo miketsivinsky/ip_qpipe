@@ -194,10 +194,13 @@ void TPipeViewRxNotifier::run()
         if(mExit)
             return;
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
+
+        //--- init DataBlock (if not initialized), reset mRxGblIdx and mRxSem
         if(!mPipeViewRx.mDataBlockData) {
             if((txEvent == IP_QPIPE_LIB::TxConnected) || (txEvent == IP_QPIPE_LIB::TxTransfer)) {
                 if(mPipeViewRx.attachDataBlock(QSharedMemory::ReadOnly) && mPipeViewRx.getDataBlockDataPtr()) {
                     mPipeViewRx.mRxGblIdx = 0;
+                    mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
                     qDebug() << "[INFO] [TPipeViewRxNotifier] DataBlock attached" << mPipeViewRx.id();
                 } else {
                     #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
@@ -211,16 +214,22 @@ void TPipeViewRxNotifier::run()
                 // txPipe view was created before, than txPipe was unconnedcted, than rxPipe (this) was created
                 // (with already existed DataBlock) and now txPipe view connect again
                 mPipeViewRx.mRxGblIdx = 0;
+                mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
             }
         }
 
+        //--- send notify (callback)
         if(mPipeViewRx.mNotifyFunc) {
-            qDebug() << "[slon]" << mPipeViewRx.mControlBlockCache.txGblIdx;
             (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
+        }
+
+        //--- rx semaphore singaling
+        if((txEvent == IP_QPIPE_LIB::TxTransfer) && mPipeViewRx.isRxSemSignalEna()) {
+            qDebug() << "[slon]" << mPipeViewRx.mControlBlockCache.txGblIdx;
+            mPipeViewRx.mRxSem.release();
         }
     }
 }
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -490,7 +499,8 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
                                                                 mId(-1),
                                                                 mNotifier(*this),
                                                                 mNotifyFunc(params.pipeRxNotifyFunc),
-                                                                mRxGblIdx(0)
+                                                                mRxGblIdx(0),
+                                                                mRxSem(0)
 {
     //---
     if(!activatePipe(params))
@@ -522,6 +532,7 @@ TPipeViewRx::~TPipeViewRx()
         TControlBlock& controlBlockView = getControlBlockView();
         controlBlockView.rxReady[mId] = 0;
     }
+    mRxSem.release(mRxSem.available());
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id();
     #endif
@@ -564,6 +575,12 @@ bool TPipeViewRx::activatePipe(IP_QPIPE_LIB::TPipeRxParams& params)
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
     return true;
+}
+
+//------------------------------------------------------------------------------
+bool TPipeViewRx::isRxSemSignalEna()
+{
+    return (!mControlBlockCache.txBufEmpty && (mRxSem.available() < static_cast<int>(mControlBlockCache.chunkNum)));
 }
 
 //------------------------------------------------------------------------------
