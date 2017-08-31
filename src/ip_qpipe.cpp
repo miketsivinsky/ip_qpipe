@@ -174,7 +174,7 @@ QString TPipeViewRxNotifier::genKey(const TPipeView& pipeView, int rxId)
 //------------------------------------------------------------------------------
 TPipeViewRxNotifier::TPipeViewRxNotifier(TPipeViewRx& pipeViewRx) :
                                                                     mExit(false),
-                                                                    mSem(genKey(pipeViewRx),0,QSystemSemaphore::Create),
+                                                                    mGblSem(genKey(pipeViewRx),0,QSystemSemaphore::Create),
                                                                     mPipeViewRx(pipeViewRx)
 {
     // TPipeViewRxNotifier constructor
@@ -183,14 +183,14 @@ TPipeViewRxNotifier::TPipeViewRxNotifier(TPipeViewRx& pipeViewRx) :
 //------------------------------------------------------------------------------
 void TPipeViewRxNotifier::setKeyPipeId(int rxId)
 {
-    mSem.setKey(genKey(mPipeViewRx.key(),rxId));
+    mGblSem.setKey(genKey(mPipeViewRx.key(),rxId));
 }
 
 //------------------------------------------------------------------------------
 void TPipeViewRxNotifier::run()
 {
     while(!mExit) {
-        mSem.acquire();
+        mGblSem.acquire();
         if(mExit)
             return;
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();

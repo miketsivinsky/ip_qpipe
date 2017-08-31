@@ -30,7 +30,7 @@ class TPipeViewRxNotifier : public QThread
 
         //---
         TPipeViewRxNotifier(TPipeViewRx& pipeViewRx);
-        ~TPipeViewRxNotifier() { mExit = true; mSem.release(); wait(WaitForFinish); }
+        ~TPipeViewRxNotifier() { mExit = true; mGblSem.release(); wait(WaitForFinish); }
         virtual void run() Q_DECL_OVERRIDE;
         void setKeyPipeId(int rxId);
 
@@ -38,7 +38,7 @@ class TPipeViewRxNotifier : public QThread
         static const unsigned WaitForFinish = 1000;
 
         bool             mExit;
-        QSystemSemaphore mSem;
+        QSystemSemaphore mGblSem;
         TPipeViewRx&     mPipeViewRx;
 };
 
@@ -164,6 +164,7 @@ class TPipeViewRx : public TPipeView
         TPipeViewRxNotifier               mNotifier;
         IP_QPIPE_LIB::PipeRxNotifyFunc    mNotifyFunc;
         uint32_t                          mRxGblIdx;
+        //QSemaphore                        mRSem
 
 };
 
