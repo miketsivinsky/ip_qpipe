@@ -18,6 +18,7 @@ namespace IP_QPIPE_LIB
     //---
     typedef enum
     {
+        TxPipeNotPresent    =  1,  // attempt to read from rx pipe, but tx pipe not present
         Ok                  =  0,  // all ok
         NotInit             = -1,  // not initialized
         PipeExistError      = -3,  // tx/rx pipe exist, attempt to open another one
@@ -29,7 +30,8 @@ namespace IP_QPIPE_LIB
         AttachRxExistError  = -9,  // attemt to attach as 'reader' but number of existed 'readers' over limit
         PipeNotExistError   = -10, // pipe not exist
         RxNotPresentError   = -11, // attempt to send data when 'rxMustBePresent' set to 'true' and no any rx pipe views
-        DataParamError      = -12  // bad data size(rx/tx) or bad buf ptr (tx)
+        DataParamError      = -12, // bad data size(rx/tx) or bad buf ptr (tx)
+        TimeoutError        = -13  // rx
 
     } TStatus;
 
@@ -86,6 +88,14 @@ namespace IP_QPIPE_LIB
         int              pipeId;
         TPipeInfo        pipeInfo;
         PipeRxNotifyFunc pipeRxNotifyFunc;
+    };
+
+    //---
+    struct TPipeRxTransfer
+    {
+        unsigned pipeKey;
+        uint8_t* dataBuf;
+        uint32_t dataLen;
     };
 
 }

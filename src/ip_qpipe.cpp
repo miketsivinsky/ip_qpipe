@@ -451,7 +451,13 @@ unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
 {
+    // 0. check pipe ok
+    if(!isPipeOk()) {
+        return mStatus;
+    }
+
     mLastError = IP_QPIPE_LIB::Ok;
+
     // 1. check present of rxPipe views (if need)
     if(txTransfer.rxMustBePresent && !isRxPresent()) {
         mLastError = IP_QPIPE_LIB::RxNotPresentError;
@@ -606,6 +612,38 @@ IP_QPIPE_LIB::TTxEvent TPipeViewRx::whatTxEvent()
     return txEvent;
 }
 
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout)
+{
+    // 0. check pipe ok
+    if(!isPipeOk()) {
+        return mStatus;
+    }
+
+    mLastError = IP_QPIPE_LIB::Ok;
+
+    // 1. wait for signal
+    if(!mRxSem.tryAcquire(1,timeout)) {
+        mLastError = mDataBlockData ? IP_QPIPE_LIB::TimeoutError : IP_QPIPE_LIB::TxPipeNotPresent;
+        return mLastError;
+    }
+
+    // 2. lock control & data
+    TLock lockControlBlock(mControlBlock);
+    TLock lockDataBlock(mDataBlock);
+    mControlBlockCache = getControlBlockView();
+
+    // 3.
+
+    return mLastError;
+}
+
+//------------------------------------------------------------------------------
+uint32_t TPipeViewRx::getIdxDelta()
+{
+    return 0;
+}
+
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -677,4 +715,14 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txT
         return IP_QPIPE_LIB::PipeNotExistError;
     }
     return pipeTxView->sendData(txTransfer);
+}
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewPool::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout)
+{
+    TPipeViewRx* pipeRxView = static_cast<TPipeViewRx*>(getPipeView(rxTransfer.pipeKey,rxPool()));
+    if(!pipeRxView) {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
+    return pipeRxView->readData(rxTransfer,timeout);
 }
