@@ -655,7 +655,23 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
         mRxGblIdx = mControlBlockCache.txGblIdx - mControlBlockCache.chunkNum + 1;
     ++mRxGblIdx;
 
-    qDebug() << "[readData]" << mControlBlockCache.txGblIdx << mControlBlockCache.txBufIdx << idxDelta << idxNormDelta << rxBufIdx << mRxGblIdx;
+    // 7. read data from chunk
+    TChunk chunk = getChunk(rxBufIdx);
+    if(!chunk.chunkData || !chunk.chunkHeader) {
+        mLastError = IP_QPIPE_LIB::DataAccessError;
+        return mLastError;
+    }
+
+    rxTransfer.dataLen = chunk.chunkHeader->chunkLen;
+    if((chunk.chunkHeader->chunkLen > rxTransfer.dataLen) || (chunk.chunkHeader->chunkLen == 0)) {
+        mLastError = IP_QPIPE_LIB::RxDataLenError;
+        return mLastError;
+    }
+
+    //--- it's feature (rxTransfer.dataBuf == 0) for speculative reading
+    if(rxTransfer.dataBuf) {
+        std::memcpy(rxTransfer.dataBuf,chunk.chunkData,chunk.chunkHeader->chunkLen);
+    }
 
     return mLastError;
 }

@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
                 printf("[ERROR] IP_QPIPE_LIB::readData, status: %2d\n",status);
                 break;
             }
-            printf("[INFO] [data read] packet: %6d\n",k);
+            printf("[INFO] [data read] packet: %6d, size: %6d\n",k,rxTransfer.dataLen);
         } else {
             printf("[WARN] Timeout Expired\n");
             break;
