@@ -633,40 +633,41 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
     TLock lockDataBlock(mDataBlock);
     mControlBlockCache = getControlBlockView();
 
-    // 3. compute idxDelta
-    uint32_t idxDelta = getIdxDelta();
+    // 3. compute idxDelta & idxNormDelta ('normalized' to buf size)
+    uint32_t idxDelta = mControlBlockCache.txGblIdx - mRxGblIdx;
     if(idxDelta == 0) {
         mLastError = IP_QPIPE_LIB::NoRxDataError;
         return mLastError;
     }
+    uint32_t idxNormDelta = (idxDelta >= mControlBlockCache.chunkNum) ? (mControlBlockCache.chunkNum - 1) : idxDelta;
 
     // 4. correct RxSem signal number
-    int32_t signalSemDelta = mRxSem.available() - idxDelta;
+    int32_t signalSemDelta = mRxSem.available() - idxNormDelta;
     if(signalSemDelta > 0) {
         mRxSem.acquire(signalSemDelta);
     }
 
-    // 5. compute "local" (buf) rx idx and advance mRxGblIdx
-    uint32_t rxBufIdx = computeRxBufIdx(idxDelta);
+    // 5. advance "local" (buf) rx idx
+    uint32_t rxBufIdx = computeRxBufIdx(idxNormDelta);
+
+    // 6. advance "global" rx idx
+    if(idxDelta >= mControlBlockCache.chunkNum)
+        mRxGblIdx = mControlBlockCache.txGblIdx - mControlBlockCache.chunkNum + 1;
     ++mRxGblIdx;
 
-    //qDebug() << "[readData]" << mControlBlockCache.txGblIdx << mControlBlockCache.txBufIdx;
+    qDebug() << "[readData]" << mControlBlockCache.txGblIdx << mControlBlockCache.txBufIdx << idxDelta << idxNormDelta << rxBufIdx << mRxGblIdx;
 
     return mLastError;
 }
 
 //------------------------------------------------------------------------------
-uint32_t TPipeViewRx::computeRxBufIdx(uint32_t idxDelta) const
+uint32_t TPipeViewRx::computeRxBufIdx(uint32_t idxNormDelta) const
 {
     uint32_t rxBufIdx;
-    if(idxDelta >= mControlBlockCache.chunkNum) {
-        rxBufIdx = ((mControlBlockCache.txBufIdx + 1) == mControlBlockCache.chunkNum) ? 0 : (mControlBlockCache.txBufIdx + 1);
-    } else {
-        if(idxDelta <= mControlBlockCache.txBufIdx)
-            rxBufIdx = mControlBlockCache.txBufIdx - idxDelta;
-        else
-            rxBufIdx = mControlBlockCache.chunkNum - (idxDelta - mControlBlockCache.txBufIdx);
-    }
+    if(idxNormDelta <= mControlBlockCache.txBufIdx)
+        rxBufIdx = mControlBlockCache.txBufIdx - idxNormDelta;
+    else
+        rxBufIdx = mControlBlockCache.chunkNum - (idxNormDelta - mControlBlockCache.txBufIdx);
     return rxBufIdx;
 }
 
