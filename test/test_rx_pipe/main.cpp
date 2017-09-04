@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 
     //---
     IP_QPIPE_LIB::TPipeRxTransfer rxTransfer;
-    for(auto k = 0; k < TransferNum; ++k) {
+    for(auto k = 0u; k < TransferNum; ++k) {
         if(SyncMode || ReadFrameSem.tryAcquire(1,Timeout)) {
             rxTransfer.pipeKey = rxParams.pipeKey;
             rxTransfer.dataBuf = RxBuf;

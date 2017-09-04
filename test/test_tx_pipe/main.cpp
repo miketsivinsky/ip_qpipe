@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     IP_QPIPE_LIB::TPipeTxTransfer txTransfer;
     uint8_t* txBuf = new uint8_t [txParams.pipeInfo.chunkSize];
 
-    for(auto k = 0; k < TransferNum; ++k) {
+    for(auto k = 0u; k < TransferNum; ++k) {
         //--- parameters setup
         txTransfer.dataBuf         = txBuf;
         txTransfer.dataLen         = txParams.pipeInfo.chunkSize;
