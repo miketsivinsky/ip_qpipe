@@ -7,10 +7,11 @@
 #include "ip_qpipe_lib.h"
 
 //------------------------------------------------------------------------------
-const bool     SyncMode    = true;
+const bool     SyncMode    = false;
 const unsigned TransferNum = 16;
 const unsigned Timeout     = 5000;
 const unsigned RxBufSize   = 4*1024;
+const unsigned PipeKey     = 2307;
 
 
 //------------------------------------------------------------------------------
@@ -33,7 +34,7 @@ int main(int argc, char* argv[]) {
     //---
     //---
     IP_QPIPE_LIB::TPipeRxParams rxParams;
-    rxParams.pipeKey            = 2307;
+    rxParams.pipeKey            = PipeKey;
     rxParams.pipeRxNotifyFunc   = PipeRxNotifyFunc;
 
     IP_QPIPE_LIB::TStatus status = IP_QPIPE_LIB::createPipeViewRx(rxParams);
@@ -87,8 +88,11 @@ void printPipeRxInfo(IP_QPIPE_LIB::TStatus status, const IP_QPIPE_LIB::TPipeRxPa
 }
 
 //------------------------------------------------------------------------------
-void PipeRxNotifyFunc(unsigned pipeKey, IP_QPIPE_LIB::TTxEvent txEvent, int pipeId, const IP_QPIPE_LIB::TPipeInfo& pipeInfo)
+void PipeRxNotifyFunc(unsigned pipeKey, IP_QPIPE_LIB::TTxEvent txEvent, int /*pipeId*/, const IP_QPIPE_LIB::TPipeInfo& /*pipeInfo*/)
 {
+    if((pipeKey == PipeKey) && (txEvent == IP_QPIPE_LIB::TxTransfer)) {
+        ReadFrameSem.release();
+    }
     #if 0
         printf("--- PipeRxNotifyFunc ---\n");
         printf("key:       %6d\n",pipeKey);
