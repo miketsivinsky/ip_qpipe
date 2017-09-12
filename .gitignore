@@ -2,7 +2,7 @@
 ################################################################################
 bin
 build
-include
+#include
 /**/x64
 /**/GeneratedFiles
 
@@ -18,3 +18,4 @@ include
 *pro.user
 /**/*plugin_import.cpp
 clean
+test/_script/test0.bat

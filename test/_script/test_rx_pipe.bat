@@ -1,0 +1,1 @@
+..\..\bin\release\test_rx_pipe.exe %1
