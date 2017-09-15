@@ -27,6 +27,13 @@ namespace IP_QPIPE_LIB
     }
 
     //------------------------------------------------------------------------------
+    IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus sendDataFuncObj(TPipeTxTransferFuncObj& txTransfer)
+    {
+        return TPipeViewPool::sendData(txTransfer);
+    }
+
+
+    //------------------------------------------------------------------------------
     IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus readData(TPipeRxTransfer& rxTransfer, int timeout)
     {
         return TPipeViewPool::readData(rxTransfer, timeout);

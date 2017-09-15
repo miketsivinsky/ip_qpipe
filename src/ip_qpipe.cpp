@@ -502,6 +502,66 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
 }
 
 //------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer)
+{
+    // 0. check pipe ok
+    if(!isPipeOk()) {
+        return mStatus;
+    }
+
+    mLastError = IP_QPIPE_LIB::Ok;
+
+    // 1. check present of rxPipe views (if need)
+    if(txTransfer.rxMustBePresent && !isRxPresent()) {
+        mLastError = IP_QPIPE_LIB::RxNotPresentError;
+        return mLastError;
+    }
+
+    // 2. check obj & transferFunc
+    if(!txTransfer.obj || !txTransfer.transferFunc) {
+        mLastError = IP_QPIPE_LIB::DataParamError;
+        return mLastError;
+    }
+
+    // 3. lock control & data
+    TLock lockControlBlock(mControlBlock);
+    TLock lockDataBlock(mDataBlock);
+
+    // 4. get chunk & write data
+    TControlBlock& controlBlockView = getControlBlockView();
+    TChunk chunk = getChunk(controlBlockView.txBufIdx);
+    if(!chunk.chunkData || !chunk.chunkHeader) {
+        mLastError = IP_QPIPE_LIB::DataAccessError;
+        return mLastError;
+    }
+    uint32_t dataLen = (*txTransfer.transferFunc)(txTransfer.obj,chunk.chunkData,controlBlockView.chunkSize);
+    txTransfer.dataLen  = dataLen; // only for debug purposes, not need for real work
+    if((dataLen == 0) || (dataLen > controlBlockView.chunkSize)) {
+        mLastError = IP_QPIPE_LIB::DataParamError;
+        return mLastError;
+    }
+    chunk.chunkHeader->chunkLen = dataLen;
+
+    // 5. modify txBufIdx, txGblIdx, txBufEmpty
+    if(controlBlockView.txBufEmpty)
+        controlBlockView.txBufEmpty = 0;
+    controlBlockView.txBufIdx = ((controlBlockView.txBufIdx + 1) == controlBlockView.chunkNum) ? 0 : (controlBlockView.txBufIdx + 1);
+    ++controlBlockView.txGblIdx;
+    mControlBlockCache = controlBlockView;
+
+    // 6. send notification to receivers
+    notifyRx(mControlBlockCache);
+
+    // 7. only for debug purposes, not need for real work
+    txTransfer.txBufIdx = controlBlockView.txBufIdx;
+    txTransfer.txGblIdx = controlBlockView.txGblIdx;
+    txTransfer.dataLen  = dataLen;
+
+    return mLastError;
+}
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -748,9 +808,18 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(IP_QPIPE_LIB::TPipeRxParam
     return IP_QPIPE_LIB::Ok;
 }
 
-
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
+{
+    TPipeViewTx* pipeTxView = static_cast<TPipeViewTx*>(getPipeView(txTransfer.pipeKey,txPool()));
+    if(!pipeTxView) {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
+    return pipeTxView->sendData(txTransfer);
+}
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer)
 {
     TPipeViewTx* pipeTxView = static_cast<TPipeViewTx*>(getPipeView(txTransfer.pipeKey,txPool()));
     if(!pipeTxView) {

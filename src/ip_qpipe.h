@@ -136,6 +136,7 @@ class TPipeViewTx : public TPipeView
         TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         ~TPipeViewTx();
         IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
+        IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer);
 
     protected:
         unsigned notifyRx(const TPipeView::TControlBlock& controlBlock);
@@ -181,6 +182,7 @@ class TPipeViewPool
         static IP_QPIPE_LIB::TStatus createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         static IP_QPIPE_LIB::TStatus createPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params);
         static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
+        static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer);
         static IP_QPIPE_LIB::TStatus readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout);
 
     private:
