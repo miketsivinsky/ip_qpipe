@@ -193,6 +193,7 @@ void TPipeViewRxNotifier::run()
         mGblSem.acquire();
         if(mExit)
             return;
+
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
 
         //--- init DataBlock (if not initialized), reset mRxGblIdx and mRxSem
@@ -600,14 +601,21 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
 //------------------------------------------------------------------------------
 TPipeViewRx::~TPipeViewRx()
 {
+    qDebug() << "slon1";
+    if(!mNotifier.stop()) {
+        qDebug() << "[ERROR] [TPipeViewRx destructor] TPipeViewRxNotifier finish timeot expired";
+    }
+    qDebug() << "slon2";
+
     if(mControlBlockData && (id() != -1)) {
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
         TControlBlock& controlBlockView = getControlBlockView();
         controlBlockView.rxReady[mId] = 0;
     }
+    //mStatus = IP_QPIPE_LIB::NotInit;
     mRxSem.release(mRxSem.available());
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id();
+        qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id() << QThread::currentThreadId();
     #endif
 }
 
