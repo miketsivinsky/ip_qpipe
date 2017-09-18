@@ -601,11 +601,9 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
 //------------------------------------------------------------------------------
 TPipeViewRx::~TPipeViewRx()
 {
-    qDebug() << "slon1";
     if(!mNotifier.stop()) {
         qDebug() << "[ERROR] [TPipeViewRx destructor] TPipeViewRxNotifier finish timeot expired";
     }
-    qDebug() << "slon2";
 
     if(mControlBlockData && (id() != -1)) {
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
