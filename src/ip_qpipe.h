@@ -11,6 +11,8 @@
 #include <QSystemSemaphore>
 #include <QSemaphore>
 
+#include <QDebug>
+
 #include "ip_qpipe_def.h"
 
 #define IP_QPIPE_PRINT_DEBUG_INFO
@@ -31,9 +33,18 @@ class TPipeViewRxNotifier : public QThread
 
         //---
         TPipeViewRxNotifier(TPipeViewRx& pipeViewRx);
-        ~TPipeViewRxNotifier() { mExit = true; mGblSem.release(); wait(WaitForFinish); }
+        ~TPipeViewRxNotifier() {
+            if(!mExit)
+                stop();
+        }
         virtual void run() Q_DECL_OVERRIDE;
         void setKeyPipeId(int rxId);
+        bool stop() {
+            mExit = true;
+            mGblSem.release();
+            bool status = wait(WaitForFinish);
+            return status;
+        }
 
     protected:
         static const unsigned WaitForFinish = 1000;
