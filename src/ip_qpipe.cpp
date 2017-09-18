@@ -239,18 +239,18 @@ void TPipeViewRxNotifier::run()
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-TPipeView::TPipeView(unsigned key) :
-                                          mControlBlock(QString::number(key) +QString("_control")),
+TPipeView::TPipeView(unsigned pipeKey) :
+                                          mControlBlock(QString::number(pipeKey) +QString("_control")),
                                           mControlBlockData(0),
-                                          mDataBlock(QString::number(key) +QString("_data")),
+                                          mDataBlock(QString::number(pipeKey) +QString("_data")),
                                           mDataBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
                                           mLastError(IP_QPIPE_LIB::NotInit),
                                           mControlBlockCache(),
-                                          mKey(key)
+                                          mKey(pipeKey)
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        //qDebug() << "[INFO] [TPipeView constructor]   key:" << key();
+        qDebug() << "[INFO] [TPipeView constructor]   key:" << key();
     #endif
 }
 
@@ -258,7 +258,7 @@ TPipeView::TPipeView(unsigned key) :
 TPipeView::~TPipeView()
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        //qDebug() << "[INFO] [TPipeView destructor] key:" << key();
+        qDebug() << "[INFO] [TPipeView destructor] key:" << key();
     #endif
 }
 
@@ -592,6 +592,9 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
     params.pipeId   = id();
     params.pipeInfo = mControlBlockCache;
     mNotifier.start();
+    #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
+        qDebug() << "[INFO] [TPipeViewRx constructor]   key:" << key();
+    #endif
 }
 
 //------------------------------------------------------------------------------

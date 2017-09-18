@@ -48,7 +48,7 @@ class TPipeViewRxNotifier : public QThread
 class TPipeView
 {
     public:
-        TPipeView(unsigned key);
+        TPipeView(unsigned pipeKey);
         virtual ~TPipeView();
         bool isPipeOk() const { return mStatus == IP_QPIPE_LIB::Ok; }
         IP_QPIPE_LIB::TStatus error() const { return mLastError; }
