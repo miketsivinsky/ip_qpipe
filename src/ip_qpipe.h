@@ -13,6 +13,7 @@
 
 #include <QDebug>
 
+#include "tqueue.h"
 #include "ip_qpipe_def.h"
 
 #define IP_QPIPE_PRINT_DEBUG_INFO
@@ -181,6 +182,7 @@ class TPipeViewRx : public TPipeView
         IP_QPIPE_LIB::PipeRxNotifyFunc    mNotifyFunc;
         uint32_t                          mRxGblIdx;
         QSemaphore                        mRxSem;
+        TQtMutexGuard                     mInstanceGuard;
 };
 
 //------------------------------------------------------------------------------
