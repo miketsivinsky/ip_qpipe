@@ -818,6 +818,19 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(IP_QPIPE_LIB::TPipeRxParam
 }
 
 //------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewPool::deletePipeView(unsigned pipeKey, TPipeViewPoolMap& pool)
+{
+    TPipeView* pipeView = getPipeView(pipeKey, pool);
+    if(pipeView) {
+        pool.erase(pipeKey);
+        delete pipeView;
+        return IP_QPIPE_LIB::Ok;
+    } else {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
+}
+
+//------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
 {
     TPipeViewTx* pipeTxView = static_cast<TPipeViewTx*>(getPipeView(txTransfer.pipeKey,txPool()));

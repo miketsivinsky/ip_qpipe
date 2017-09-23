@@ -192,6 +192,8 @@ class TPipeViewPool
         static bool isPipeViewRxExist(unsigned key) { return (getPipeView(key,rxPool()) != 0); }
         static IP_QPIPE_LIB::TStatus createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         static IP_QPIPE_LIB::TStatus createPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params);
+        static IP_QPIPE_LIB::TStatus deletePipeViewTx(unsigned pipeKey) { return deletePipeView(pipeKey, txPool()); }
+        static IP_QPIPE_LIB::TStatus deletePipeViewRx(unsigned pipeKey) { return deletePipeView(pipeKey, rxPool()); }
         static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
         static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer);
         static IP_QPIPE_LIB::TStatus readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout);
@@ -210,6 +212,7 @@ class TPipeViewPool
         TPipeViewPool() : mTxPool(), mRxPool() { }
         ~TPipeViewPool();
         static TPipeView* getPipeView(unsigned key, TPipeViewPoolMap& pool);
+        static IP_QPIPE_LIB::TStatus deletePipeView(unsigned pipeKey, TPipeViewPoolMap& pool);
 
         TPipeViewPoolMap mTxPool;
         TPipeViewPoolMap mRxPool;

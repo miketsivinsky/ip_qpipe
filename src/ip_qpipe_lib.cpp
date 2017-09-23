@@ -21,6 +21,18 @@ namespace IP_QPIPE_LIB
     }
 
     //------------------------------------------------------------------------------
+    IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus deletePipeViewTx(unsigned pipeKey)
+    {
+        return TPipeViewPool::deletePipeViewTx(pipeKey);
+    }
+
+    //------------------------------------------------------------------------------
+    IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus deletePipeViewRx(unsigned pipeKey)
+    {
+        return TPipeViewPool::deletePipeViewRx(pipeKey);
+    }
+
+    //------------------------------------------------------------------------------
     IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus sendData(TPipeTxTransfer& txTransfer)
     {
         return TPipeViewPool::sendData(txTransfer);
