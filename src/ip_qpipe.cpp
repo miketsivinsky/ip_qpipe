@@ -611,7 +611,9 @@ TPipeViewRx::~TPipeViewRx()
         controlBlockView.rxReady[mId] = 0;
     }
     //mStatus = IP_QPIPE_LIB::NotInit;
-    mRxSem.release(mRxSem.available());
+    mRxSem.release();
+
+    TQtMutexGuard::TLocker lock(mInstanceGuard);
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
         qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id() << QThread::currentThreadId();
     #endif
@@ -684,6 +686,8 @@ IP_QPIPE_LIB::TTxEvent TPipeViewRx::whatTxEvent()
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout)
 {
+    TQtMutexGuard::TLocker lock(mInstanceGuard);
+
     // 0. check pipe ok
     if(!isPipeOk()) {
         return mStatus;
@@ -815,6 +819,19 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(IP_QPIPE_LIB::TPipeRxParam
     }
     rxPool().insert(std::pair<unsigned,TPipeView*>(pipeView->key(),pipeView));
     return IP_QPIPE_LIB::Ok;
+}
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewPool::deletePipeView(unsigned pipeKey, TPipeViewPoolMap& pool)
+{
+    TPipeView* pipeView = getPipeView(pipeKey, pool);
+    if(pipeView) {
+        pool.erase(pipeKey);
+        delete pipeView;
+        return IP_QPIPE_LIB::Ok;
+    } else {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
 }
 
 //------------------------------------------------------------------------------
