@@ -735,12 +735,14 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
         return mLastError;
     }
 
+    // 8. check chunk data len
     rxTransfer.dataLen = chunk.chunkHeader->chunkLen;
     if((chunk.chunkHeader->chunkLen > rxTransfer.dataLen) || (chunk.chunkHeader->chunkLen == 0)) {
         mLastError = IP_QPIPE_LIB::RxDataLenError;
         return mLastError;
     }
 
+    // 9. copy data
     //--- it's feature (rxTransfer.dataBuf == 0) for speculative reading
     if(rxTransfer.dataBuf) {
         std::memcpy(rxTransfer.dataBuf,chunk.chunkData,chunk.chunkHeader->chunkLen);
