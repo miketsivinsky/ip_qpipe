@@ -752,6 +752,74 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
 }
 
 //------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj& rxTransfer, int timeout)
+{
+    TQtMutexGuard::TLocker lock(mInstanceGuard);
+
+    // 0. check pipe ok
+    if(!isPipeOk()) {
+        return mStatus;
+    }
+
+    mLastError = IP_QPIPE_LIB::Ok;
+
+    // 1. wait for signal
+    if(!mRxSem.tryAcquire(1,timeout)) {
+        mLastError = mDataBlockData ? IP_QPIPE_LIB::TimeoutError : IP_QPIPE_LIB::TxPipeNotPresent;
+        return mLastError;
+    }
+
+    // 2. lock control & data
+    TLock lockControlBlock(mControlBlock);
+    TLock lockDataBlock(mDataBlock);
+    mControlBlockCache = getControlBlockView();
+
+    // 3. compute idxDelta & idxNormDelta ('normalized' to buf size)
+    uint32_t idxDelta = mControlBlockCache.txGblIdx - mRxGblIdx;
+    if(idxDelta == 0) {
+        mLastError = IP_QPIPE_LIB::NoRxDataError;
+        return mLastError;
+    }
+    uint32_t idxNormDelta = (idxDelta >= mControlBlockCache.chunkNum) ? (mControlBlockCache.chunkNum - 1) : idxDelta;
+
+    // 4. correct RxSem signal number
+    int32_t signalSemDelta = mRxSem.available() - idxNormDelta;
+    if(signalSemDelta > 0) {
+        mRxSem.acquire(signalSemDelta);
+    }
+
+    // 5. advance "local" (buf) rx idx
+    uint32_t rxBufIdx = computeRxBufIdx(idxNormDelta);
+
+    // 6. advance "global" rx idx
+    if(idxDelta >= mControlBlockCache.chunkNum)
+        mRxGblIdx = mControlBlockCache.txGblIdx - mControlBlockCache.chunkNum + 1;
+    ++mRxGblIdx;
+
+    // 7. read data from chunk
+    TChunk chunk = getChunk(rxBufIdx);
+    if(!chunk.chunkData || !chunk.chunkHeader) {
+        mLastError = IP_QPIPE_LIB::DataAccessError;
+        return mLastError;
+    }
+
+    // 8. check chunk data len
+    rxTransfer.dataLen = chunk.chunkHeader->chunkLen;
+    if(chunk.chunkHeader->chunkLen == 0) {
+        mLastError = IP_QPIPE_LIB::RxDataLenError;
+        return mLastError;
+    }
+
+    // 9. check chunk data len
+    if(!rxTransfer.transferFunc ||  !(*rxTransfer.transferFunc)(rxTransfer.obj,chunk.chunkData,chunk.chunkHeader->chunkLen)) {
+        mLastError = IP_QPIPE_LIB::RxDataFuncObjError;
+        return mLastError;
+    }
+
+    return mLastError;
+}
+
+//------------------------------------------------------------------------------
 uint32_t TPipeViewRx::computeRxBufIdx(uint32_t idxNormDelta) const
 {
     uint32_t rxBufIdx;
@@ -858,6 +926,15 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransferFuncO
 
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewPool::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout)
+{
+    TPipeViewRx* pipeRxView = static_cast<TPipeViewRx*>(getPipeView(rxTransfer.pipeKey,rxPool()));
+    if(!pipeRxView) {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
+    return pipeRxView->readData(rxTransfer,timeout);
+}
+
+IP_QPIPE_LIB::TStatus TPipeViewPool::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj& rxTransfer, int timeout)
 {
     TPipeViewRx* pipeRxView = static_cast<TPipeViewRx*>(getPipeView(rxTransfer.pipeKey,rxPool()));
     if(!pipeRxView) {
