@@ -183,7 +183,7 @@ TPipeViewRxNotifier::TPipeViewRxNotifier(TPipeViewRx& pipeViewRx) :
 //------------------------------------------------------------------------------
 void TPipeViewRxNotifier::setKeyPipeId(int rxId)
 {
-    mGblSem.setKey(genKey(mPipeViewRx.key(),rxId));
+    mGblSem.setKey(genKey(mPipeViewRx,rxId));
 }
 
 //------------------------------------------------------------------------------
@@ -193,6 +193,7 @@ void TPipeViewRxNotifier::run()
         mGblSem.acquire();
         if(mExit)
             return;
+
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
 
         //--- init DataBlock (if not initialized), reset mRxGblIdx and mRxSem
@@ -239,18 +240,18 @@ void TPipeViewRxNotifier::run()
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-TPipeView::TPipeView(unsigned key) :
-                                          mControlBlock(QString::number(key) +QString("_control")),
+TPipeView::TPipeView(unsigned pipeKey) :
+                                          mControlBlock(QString::number(pipeKey) +QString("_control")),
                                           mControlBlockData(0),
-                                          mDataBlock(QString::number(key) +QString("_data")),
+                                          mDataBlock(QString::number(pipeKey) +QString("_data")),
                                           mDataBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
                                           mLastError(IP_QPIPE_LIB::NotInit),
                                           mControlBlockCache(),
-                                          mKey(key)
+                                          mKey(pipeKey)
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        //qDebug() << "[INFO] [TPipeView constructor]   key:" << key();
+        qDebug() << "[INFO] [TPipeView constructor]   key:" << key();
     #endif
 }
 
@@ -258,7 +259,7 @@ TPipeView::TPipeView(unsigned key) :
 TPipeView::~TPipeView()
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        //qDebug() << "[INFO] [TPipeView destructor] key:" << key();
+        qDebug() << "[INFO] [TPipeView destructor] key:" << key();
     #endif
 }
 
@@ -502,6 +503,66 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
 }
 
 //------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer)
+{
+    // 0. check pipe ok
+    if(!isPipeOk()) {
+        return mStatus;
+    }
+
+    mLastError = IP_QPIPE_LIB::Ok;
+
+    // 1. check present of rxPipe views (if need)
+    if(txTransfer.rxMustBePresent && !isRxPresent()) {
+        mLastError = IP_QPIPE_LIB::RxNotPresentError;
+        return mLastError;
+    }
+
+    // 2. check obj & transferFunc
+    if(!txTransfer.obj || !txTransfer.transferFunc) {
+        mLastError = IP_QPIPE_LIB::DataParamError;
+        return mLastError;
+    }
+
+    // 3. lock control & data
+    TLock lockControlBlock(mControlBlock);
+    TLock lockDataBlock(mDataBlock);
+
+    // 4. get chunk & write data
+    TControlBlock& controlBlockView = getControlBlockView();
+    TChunk chunk = getChunk(controlBlockView.txBufIdx);
+    if(!chunk.chunkData || !chunk.chunkHeader) {
+        mLastError = IP_QPIPE_LIB::DataAccessError;
+        return mLastError;
+    }
+    uint32_t dataLen = (*txTransfer.transferFunc)(txTransfer.obj,chunk.chunkData,controlBlockView.chunkSize);
+    txTransfer.dataLen  = dataLen; // only for debug purposes, not need for real work
+    if((dataLen == 0) || (dataLen > controlBlockView.chunkSize)) {
+        mLastError = IP_QPIPE_LIB::DataParamError;
+        return mLastError;
+    }
+    chunk.chunkHeader->chunkLen = dataLen;
+
+    // 5. modify txBufIdx, txGblIdx, txBufEmpty
+    if(controlBlockView.txBufEmpty)
+        controlBlockView.txBufEmpty = 0;
+    controlBlockView.txBufIdx = ((controlBlockView.txBufIdx + 1) == controlBlockView.chunkNum) ? 0 : (controlBlockView.txBufIdx + 1);
+    ++controlBlockView.txGblIdx;
+    mControlBlockCache = controlBlockView;
+
+    // 6. send notification to receivers
+    notifyRx(mControlBlockCache);
+
+    // 7. only for debug purposes, not need for real work
+    txTransfer.txBufIdx = controlBlockView.txBufIdx;
+    txTransfer.txGblIdx = controlBlockView.txGblIdx;
+    txTransfer.dataLen  = dataLen;
+
+    return mLastError;
+}
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -532,19 +593,29 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
     params.pipeId   = id();
     params.pipeInfo = mControlBlockCache;
     mNotifier.start();
+    #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
+        qDebug() << "[INFO] [TPipeViewRx constructor]   key:" << key();
+    #endif
 }
 
 //------------------------------------------------------------------------------
 TPipeViewRx::~TPipeViewRx()
 {
+    if(!mNotifier.stop()) {
+        qDebug() << "[ERROR] [TPipeViewRx destructor] TPipeViewRxNotifier finish timeot expired";
+    }
+
     if(mControlBlockData && (id() != -1)) {
         TLock lockControlBlock(mControlBlock); // TODO: check - locked or not
         TControlBlock& controlBlockView = getControlBlockView();
         controlBlockView.rxReady[mId] = 0;
     }
-    mRxSem.release(mRxSem.available());
+    //mStatus = IP_QPIPE_LIB::NotInit;
+    mRxSem.release();
+
+    TQtMutexGuard::TLocker lock(mInstanceGuard);
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id();
+        qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id() << QThread::currentThreadId();
     #endif
 }
 
@@ -615,6 +686,8 @@ IP_QPIPE_LIB::TTxEvent TPipeViewRx::whatTxEvent()
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout)
 {
+    TQtMutexGuard::TLocker lock(mInstanceGuard);
+
     // 0. check pipe ok
     if(!isPipeOk()) {
         return mStatus;
@@ -748,9 +821,31 @@ IP_QPIPE_LIB::TStatus TPipeViewPool::createPipeViewRx(IP_QPIPE_LIB::TPipeRxParam
     return IP_QPIPE_LIB::Ok;
 }
 
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewPool::deletePipeView(unsigned pipeKey, TPipeViewPoolMap& pool)
+{
+    TPipeView* pipeView = getPipeView(pipeKey, pool);
+    if(pipeView) {
+        pool.erase(pipeKey);
+        delete pipeView;
+        return IP_QPIPE_LIB::Ok;
+    } else {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
+}
 
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
+{
+    TPipeViewTx* pipeTxView = static_cast<TPipeViewTx*>(getPipeView(txTransfer.pipeKey,txPool()));
+    if(!pipeTxView) {
+        return IP_QPIPE_LIB::PipeNotExistError;
+    }
+    return pipeTxView->sendData(txTransfer);
+}
+
+//------------------------------------------------------------------------------
+IP_QPIPE_LIB::TStatus TPipeViewPool::sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer)
 {
     TPipeViewTx* pipeTxView = static_cast<TPipeViewTx*>(getPipeView(txTransfer.pipeKey,txPool()));
     if(!pipeTxView) {

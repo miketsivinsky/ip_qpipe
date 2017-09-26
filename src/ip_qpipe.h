@@ -11,6 +11,9 @@
 #include <QSystemSemaphore>
 #include <QSemaphore>
 
+#include <QDebug>
+
+#include "tqueue.h"
 #include "ip_qpipe_def.h"
 
 #define IP_QPIPE_PRINT_DEBUG_INFO
@@ -31,9 +34,18 @@ class TPipeViewRxNotifier : public QThread
 
         //---
         TPipeViewRxNotifier(TPipeViewRx& pipeViewRx);
-        ~TPipeViewRxNotifier() { mExit = true; mGblSem.release(); wait(WaitForFinish); }
+        ~TPipeViewRxNotifier() {
+            if(!mExit)
+                stop();
+        }
         virtual void run() Q_DECL_OVERRIDE;
         void setKeyPipeId(int rxId);
+        bool stop() {
+            mExit = true;
+            mGblSem.release();
+            bool status = wait(WaitForFinish);
+            return status;
+        }
 
     protected:
         static const unsigned WaitForFinish = 1000;
@@ -48,7 +60,7 @@ class TPipeViewRxNotifier : public QThread
 class TPipeView
 {
     public:
-        TPipeView(unsigned key);
+        TPipeView(unsigned pipeKey);
         virtual ~TPipeView();
         bool isPipeOk() const { return mStatus == IP_QPIPE_LIB::Ok; }
         IP_QPIPE_LIB::TStatus error() const { return mLastError; }
@@ -136,6 +148,7 @@ class TPipeViewTx : public TPipeView
         TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         ~TPipeViewTx();
         IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
+        IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer);
 
     protected:
         unsigned notifyRx(const TPipeView::TControlBlock& controlBlock);
@@ -169,6 +182,7 @@ class TPipeViewRx : public TPipeView
         IP_QPIPE_LIB::PipeRxNotifyFunc    mNotifyFunc;
         uint32_t                          mRxGblIdx;
         QSemaphore                        mRxSem;
+        TQtMutexGuard                     mInstanceGuard;
 };
 
 //------------------------------------------------------------------------------
@@ -180,7 +194,10 @@ class TPipeViewPool
         static bool isPipeViewRxExist(unsigned key) { return (getPipeView(key,rxPool()) != 0); }
         static IP_QPIPE_LIB::TStatus createPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params);
         static IP_QPIPE_LIB::TStatus createPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params);
+        static IP_QPIPE_LIB::TStatus deletePipeViewTx(unsigned pipeKey) { return deletePipeView(pipeKey, txPool()); }
+        static IP_QPIPE_LIB::TStatus deletePipeViewRx(unsigned pipeKey) { return deletePipeView(pipeKey, rxPool()); }
         static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
+        static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer);
         static IP_QPIPE_LIB::TStatus readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout);
 
     private:
@@ -197,6 +214,7 @@ class TPipeViewPool
         TPipeViewPool() : mTxPool(), mRxPool() { }
         ~TPipeViewPool();
         static TPipeView* getPipeView(unsigned key, TPipeViewPoolMap& pool);
+        static IP_QPIPE_LIB::TStatus deletePipeView(unsigned pipeKey, TPipeViewPoolMap& pool);
 
         TPipeViewPoolMap mTxPool;
         TPipeViewPoolMap mRxPool;

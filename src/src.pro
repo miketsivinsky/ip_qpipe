@@ -10,6 +10,7 @@ include($${PRJ_DIR}/build.pri)
 HEADERS    += \
                $${INC_DIR}/ip_qpipe_def.h  \
                $${INC_DIR}/ip_qpipe_lib.h  \
+               $${INC_DIR}/tqueue.h        \
                ip_qpipe.h
 SOURCES    += \
                ip_qpipe.cpp   \                
