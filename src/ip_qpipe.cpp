@@ -811,7 +811,7 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj
     }
 
     // 9. check chunk data len
-    if(!rxTransfer.transferFunc ||  !(*rxTransfer.transferFunc)(rxTransfer.obj,chunk.chunkData,chunk.chunkHeader->chunkLen)) {
+    if(!rxTransfer.transferFunc || !rxTransfer.obj ||  !(*rxTransfer.transferFunc)(rxTransfer.obj,chunk.chunkData,chunk.chunkHeader->chunkLen)) {
         mLastError = IP_QPIPE_LIB::RxDataFuncObjError;
         return mLastError;
     }
