@@ -51,5 +51,10 @@ namespace IP_QPIPE_LIB
         return TPipeViewPool::readData(rxTransfer, timeout);
     }
 
+    //------------------------------------------------------------------------------
+    IP_QPIPE_DLL_API IP_QPIPE_LIB::TStatus readDataFuncObj(TPipeRxTransferFuncObj& rxTransfer, int timeout)
+    {
+        return TPipeViewPool::readData(rxTransfer, timeout);
+    }
 
 }

@@ -170,6 +170,7 @@ class TPipeViewRx : public TPipeView
         ~TPipeViewRx();
         int id() const { return mId; }
         IP_QPIPE_LIB::TStatus readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout);
+        IP_QPIPE_LIB::TStatus readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj& rxTransfer, int timeout);
 
     protected:
         IP_QPIPE_LIB::TTxEvent whatTxEvent();
@@ -199,6 +200,7 @@ class TPipeViewPool
         static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer);
         static IP_QPIPE_LIB::TStatus sendData(IP_QPIPE_LIB::TPipeTxTransferFuncObj& txTransfer);
         static IP_QPIPE_LIB::TStatus readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout);
+        static IP_QPIPE_LIB::TStatus readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj& rxTransfer, int timeout);
 
     private:
         typedef std::map<unsigned,TPipeView*> TPipeViewPoolMap;
