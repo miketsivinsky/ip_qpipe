@@ -452,6 +452,8 @@ unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
 {
+    qDebug() << "[DEBUG] [TPipeViewTx::sendData] (begin) key:" << key();
+
     // 0. check pipe ok
     if(!isPipeOk()) {
         return mStatus;
@@ -498,6 +500,8 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
     // 7. only for debug purposes, not need for real work
     txTransfer.txBufIdx = controlBlockView.txBufIdx;
     txTransfer.txGblIdx = controlBlockView.txGblIdx;
+
+    qDebug() << "[DEBUG] [TPipeViewTx::sendData] (end) key:" << key();
 
     return mLastError;
 }
