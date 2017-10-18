@@ -594,6 +594,9 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
     //---
     mNotifier.setKeyPipeId(id());
     mControlBlockCache = getControlBlockView(); // not quarded
+
+    qDebug() << "[DEBUG] rx pipe:" << key() << "txGblIdx:" << mControlBlockCache.txGblIdx;
+
     params.pipeId   = id();
     params.pipeInfo = mControlBlockCache;
     mNotifier.start();
