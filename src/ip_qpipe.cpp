@@ -183,7 +183,7 @@ TPipeViewRxNotifier::TPipeViewRxNotifier(TPipeViewRx& pipeViewRx) :
 //------------------------------------------------------------------------------
 void TPipeViewRxNotifier::setKeyPipeId(int rxId)
 {
-    mGblSem.setKey(genKey(mPipeViewRx,rxId));
+    mGblSem.setKey(genKey(mPipeViewRx,rxId),0,QSystemSemaphore::Create);
 }
 
 //------------------------------------------------------------------------------
