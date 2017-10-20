@@ -476,8 +476,8 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
     }
 
     // 3. lock control & data
-    TLock lockControlBlock(mControlBlock);
-    TLock lockDataBlock(mDataBlock);
+    TLock lockControlBlock(mControlBlock, true, 1);
+    TLock lockDataBlock(mDataBlock, true, 1);
 
     // 4. get chunk & write data
     TControlBlock& controlBlockView = getControlBlockView();
