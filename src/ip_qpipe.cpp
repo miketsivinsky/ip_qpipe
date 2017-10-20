@@ -716,6 +716,10 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
     if(!mRxSem.tryAcquire(1,timeout)) {
         mLastError = mDataBlockData ? IP_QPIPE_LIB::TimeoutError : IP_QPIPE_LIB::TxPipeNotPresent;
         return mLastError;
+    } else {
+         if(!isPipeOk()) {
+             return mStatus;
+         }
     }
 
     // 2. lock control & data
@@ -784,6 +788,10 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj
     if(!mRxSem.tryAcquire(1,timeout)) {
         mLastError = mDataBlockData ? IP_QPIPE_LIB::TimeoutError : IP_QPIPE_LIB::TxPipeNotPresent;
         return mLastError;
+    } else {
+        if(!isPipeOk()) {
+            return mStatus;
+        }
     }
 
     // 2. lock control & data
