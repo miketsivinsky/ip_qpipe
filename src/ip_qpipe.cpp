@@ -723,8 +723,8 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
     }
 
     // 2. lock control & data
-    TLock lockControlBlock(mControlBlock);
-    TLock lockDataBlock(mDataBlock);
+    TLock lockControlBlock(mControlBlock, true, 2);
+    TLock lockDataBlock(mDataBlock, true, 2);
     mControlBlockCache = getControlBlockView();
 
     // 3. compute idxDelta & idxNormDelta ('normalized' to buf size)
