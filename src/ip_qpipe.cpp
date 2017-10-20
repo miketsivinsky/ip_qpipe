@@ -251,7 +251,9 @@ TPipeView::TPipeView(unsigned pipeKey) :
                                           mKey(pipeKey)
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        qDebug() << "[INFO] [TPipeView constructor]   key:" << key();
+        qDebug() << "[INFO] [TPipeView constructor]   key:" << key()
+                                                 << "ControlBlock error:" << mControlBlock.error()
+                                                 << "DataBlock error:"    << mDataBlock.error();
     #endif
 }
 
