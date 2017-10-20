@@ -738,8 +738,28 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
 
     // 4. correct RxSem signal number
     int32_t signalSemDelta = mRxSem.available() - idxNormDelta;
+
+    //---
+    if(key() == 1502) {
+        qDebug() << "[DEBUG] cmd pipe read info (begin)";
+        qDebug() << "[DEBUG] txGblIdx    :  " << mControlBlockCache.txGblIdx;
+        qDebug() << "[DEBUG] rxGblIdx    :  " << mRxGblIdx;
+        qDebug() << "[DEBUG] idxDelta    :  " << idxDelta;
+        qDebug() << "[DEBUG] idxNormDelta:  " << idxNormDelta;
+        qDebug() << "[DEBUG] RxSem avail.:  " << mRxSem.available();
+        qDebug() << "[DEBUG] signalSemDelta:" << signalSemDelta;
+        qDebug() << "[DEBUG] cmd pipe read info (end)";
+    }
+    //---
+
     if(signalSemDelta > 0) {
+        if(key() == 1502) {
+            qDebug() << "[DEBUG] cmd pipe read mRxSem.acquire (before)";
+        }
         mRxSem.acquire(signalSemDelta);
+        if(key() == 1502) {
+            qDebug() << "[DEBUG] cmd pipe read mRxSem.acquire (after)";
+        }
     }
 
     // 5. advance "local" (buf) rx idx
