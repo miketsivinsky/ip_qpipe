@@ -691,6 +691,13 @@ IP_QPIPE_LIB::TTxEvent TPipeViewRx::whatTxEvent()
 }
 
 //------------------------------------------------------------------------------
+void TPipeViewRx::syncRxGblIdx()
+{
+    mControlBlockCache = getControlBlockView(); // not quarded
+    mRxGblIdx = mControlBlockCache.txGblIdx;
+}
+
+//------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout)
 {
     TQtMutexGuard::TLocker lock(mInstanceGuard);

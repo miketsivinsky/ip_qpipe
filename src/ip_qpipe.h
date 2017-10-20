@@ -177,6 +177,7 @@ class TPipeViewRx : public TPipeView
         bool activatePipe(IP_QPIPE_LIB::TPipeRxParams& params);
         bool isRxSemSignalEna();
         uint32_t computeRxBufIdx(uint32_t idxNormDelta) const;
+        void syncRxGblIdx();
 
         int                               mId;
         TPipeViewRxNotifier               mNotifier;
