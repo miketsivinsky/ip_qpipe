@@ -110,9 +110,27 @@ class TPipeView
                 QSharedMemory& mSharedMem;
                 bool           mLocked;
 
+                bool           mEnaTrace;
+                int            mTraceId;
+
             public:
-                TLock(QSharedMemory& sharedMem) : mSharedMem(sharedMem), mLocked(sharedMem.lock()) {}
-                ~TLock() { mSharedMem.unlock(); }
+                TLock(QSharedMemory& sharedMem, bool enaTrace = false, int traceId = 0) :
+                    mSharedMem(sharedMem),
+                    mLocked(sharedMem.lock()),
+                    mEnaTrace(enaTrace),
+                    mTraceId(traceId)
+                {
+                    if(mEnaTrace) {
+                        qDebug() << "[DEBUG] TPipeView::TLock locked. key:" << mSharedMem.key() << "traceId:" << mTraceId;
+                    }
+                }
+                ~TLock()
+                {
+                    mSharedMem.unlock();
+                    if(mEnaTrace) {
+                        qDebug() << "[DEBUG] TPipeView::TLock unlocked. key:" << mSharedMem.key() << "traceId:" << mTraceId;
+                    }
+                }
                 bool isLocked() const { return mLocked; }
         };
 
