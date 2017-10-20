@@ -620,7 +620,7 @@ TPipeViewRx::~TPipeViewRx()
         TControlBlock& controlBlockView = getControlBlockView();
         controlBlockView.rxReady[mId] = 0;
     }
-    mStatus = IP_QPIPE_LIB::NotInit;
+    mStatus = IP_QPIPE_LIB::PipeNotExistError;
     mRxSem.release();
 
     TQtMutexGuard::TLocker lock(mInstanceGuard);
