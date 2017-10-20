@@ -215,7 +215,14 @@ void TPipeViewRxNotifier::run()
                 // txPipe view was created before, than txPipe was unconnedcted, than rxPipe (this) was created
                 // (with already existed DataBlock) and now txPipe view connect again
                 mPipeViewRx.syncRxGblIdx();
+
+                if(mPipeViewRx.key() == 1502) {
+                    qDebug() << "[DEBUG] cmd pipe read notifier mRxSem.acquire (before)" << mPipeViewRx.mRxSem.available();
+                }
                 mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
+                if(mPipeViewRx.key() == 1502) {
+                    qDebug() << "[DEBUG] cmd pipe read notifier mRxSem.acquire (after)" << mPipeViewRx.mRxSem.available();
+                }
             }
         }
 
