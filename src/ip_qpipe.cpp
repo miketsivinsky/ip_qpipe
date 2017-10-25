@@ -248,9 +248,9 @@ void TPipeViewRxNotifier::run()
 
 //------------------------------------------------------------------------------
 TPipeView::TPipeView(unsigned pipeKey) :
-                                          mControlBlock(QString::number(pipeKey) +QString("_control")),
+                                          mControlBlock(pipeKey, QString::number(pipeKey) +QString("_control")),
                                           mControlBlockData(0),
-                                          mDataBlock(QString::number(pipeKey) +QString("_data")),
+                                          mDataBlock(pipeKey, QString::number(pipeKey) +QString("_data")),
                                           mDataBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
                                           mLastError(IP_QPIPE_LIB::NotInit),
