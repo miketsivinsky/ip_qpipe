@@ -9,13 +9,13 @@
 bool TSharedMemory::lock(unsigned pipeKey)
 {
     if(pipeKey == mPipeKey) {
-        qDebug() << "I: lock entry pipeKey:" << pipeKey;
+        qDebug() << "I: lock entry key:" << key();
     }
 
     QSharedMemoryPrivate* d = d_func();
 
     if (d->lockedByMe) {
-        qWarning("QSharedMemory::lock: already locked");
+        qDebug() << "W: QSharedMemory::lock: already locked, key:" << key();
         return true;
     }
     if (d->systemSemaphore.acquire()) {
@@ -33,7 +33,7 @@ bool TSharedMemory::lock(unsigned pipeKey)
 bool TSharedMemory::unlock(unsigned pipeKey)
 {
     if(pipeKey == mPipeKey) {
-        qDebug() << "I: unlock entry pipeKey:" << pipeKey;
+        qDebug() << "I: unlock entry key:" << key();
     }
 
     QSharedMemoryPrivate* d = d_func();
