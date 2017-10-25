@@ -11,9 +11,11 @@ HEADERS    += \
                $${INC_DIR}/ip_qpipe_def.h  \
                $${INC_DIR}/ip_qpipe_lib.h  \
                $${INC_DIR}/tqueue.h        \
+               shared_mem.h                \
                ip_qpipe.h
 SOURCES    += \
-               ip_qpipe.cpp   \                
+               shared_mem.cpp              \
+               ip_qpipe.cpp                \                
                ip_qpipe_lib.cpp
 
 QT         += testlib
