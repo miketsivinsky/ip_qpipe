@@ -6,8 +6,12 @@
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-bool TSharedMemory::lock()
+bool TSharedMemory::lock(unsigned pipeKey)
 {
+    if(pipeKey == mPipeKey) {
+        qDebug() << "I: lock entry pipeKey:" << pipeKey;
+    }
+
     QSharedMemoryPrivate* d = d_func();
 
     if (d->lockedByMe) {
@@ -26,8 +30,12 @@ bool TSharedMemory::lock()
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-bool TSharedMemory::unlock()
+bool TSharedMemory::unlock(unsigned pipeKey)
 {
+    if(pipeKey == mPipeKey) {
+        qDebug() << "I: unlock entry pipeKey:" << pipeKey;
+    }
+
     QSharedMemoryPrivate* d = d_func();
 
     if (!d->lockedByMe)

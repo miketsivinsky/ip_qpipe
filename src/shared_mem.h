@@ -17,8 +17,8 @@ class TSharedMemory : public QSharedMemory
                                                                                            mPipeKey(pipeKey)
                                                                                            {}
         bool isLockedByMe() { return d_func()->lockedByMe; }
-        bool lock();
-        bool unlock();
+        bool lock(unsigned pipeKey = 0);
+        bool unlock(unsigned pipeKey = 0);
         //bool attach(QSharedMemory::AccessMode mode);
 
     protected:
