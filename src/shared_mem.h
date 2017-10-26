@@ -12,6 +12,10 @@
 class TSharedMemory : public QSharedMemory
 {
     public:
+        TSharedMemory(unsigned pipeKey, QObject *parent = Q_NULLPTR) :
+                                                                       QSharedMemory(parent),
+                                                                       mPipeKey(pipeKey)
+                                                                       {}
         TSharedMemory(unsigned pipeKey, const QString &key, QObject *parent = Q_NULLPTR) :
                                                                                            QSharedMemory(key, parent),
                                                                                            mPipeKey(pipeKey)
