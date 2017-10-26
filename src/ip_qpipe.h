@@ -199,6 +199,9 @@ class TPipeViewRx : public TPipeView
         uint32_t computeRxBufIdx(uint32_t idxNormDelta) const;
         void syncRxGblIdx();
 
+        bool dataBlockOn();
+        bool dataBlockOff();
+
         int                               mId;
         TPipeViewRxNotifier               mNotifier;
         IP_QPIPE_LIB::PipeRxNotifyFunc    mNotifyFunc;

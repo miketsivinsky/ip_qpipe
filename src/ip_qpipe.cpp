@@ -582,8 +582,8 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
                                                                 mRxGblIdx(0),
                                                                 mRxSem(0)
 {
-    mControlBlock.setKey(QString::number(params.pipeKey) +QString("_control"));
-    mDataBlock.setKey(QString::number(params.pipeKey) +QString("_data"));
+    mControlBlock.setKey(QString::number(params.pipeKey) + QString("_control"));
+    mDataBlock.setKey(QString::number(params.pipeKey) + QString("_data"));
 
     //---
     if(!activatePipe(params))
@@ -602,7 +602,6 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
     //---
     mNotifier.setKeyPipeId(id());
     syncRxGblIdx();
-    //mControlBlockCache = getControlBlockView(); // not need, because mControlBlockCache read in the 'syncRxGblIdx' above
 
     params.pipeId   = id();
     params.pipeInfo = mControlBlockCache;
@@ -669,6 +668,30 @@ bool TPipeViewRx::activatePipe(IP_QPIPE_LIB::TPipeRxParams& params)
         #endif
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
+    return true;
+}
+
+//------------------------------------------------------------------------------
+bool TPipeViewRx::dataBlockOn()
+{
+    TQtMutexGuard::TLocker lock(mInstanceGuard); // ???
+
+    mDataBlockData = 0;
+    mDataBlock.setKey(QString::number(key()) + QString("_data"));
+    if(!attachDataBlock(QSharedMemory::ReadOnly))
+        return false;
+    if(!getDataBlockDataPtr())
+        return false;
+    return true;
+}
+
+//------------------------------------------------------------------------------
+bool TPipeViewRx::dataBlockOff()
+{
+    TQtMutexGuard::TLocker lock(mInstanceGuard); // ???
+
+    mDataBlockData = 0;
+    mDataBlock.setKey(QString());
     return true;
 }
 
