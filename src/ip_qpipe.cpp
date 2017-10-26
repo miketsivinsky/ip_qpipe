@@ -244,9 +244,9 @@ void TPipeViewRxNotifier::run()
 
 //------------------------------------------------------------------------------
 TPipeView::TPipeView(unsigned pipeKey) :
-                                          mControlBlock(pipeKey, QString::number(pipeKey) +QString("_control")),
+                                          mControlBlock(pipeKey),
                                           mControlBlockData(0),
-                                          mDataBlock(pipeKey, QString::number(pipeKey) +QString("_data")),
+                                          mDataBlock(pipeKey),
                                           mDataBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
                                           mLastError(IP_QPIPE_LIB::NotInit),
@@ -326,6 +326,9 @@ TPipeView::TChunk TPipeView::getChunk(uint32_t idx)
 //------------------------------------------------------------------------------
 TPipeViewTx::TPipeViewTx(IP_QPIPE_LIB::TPipeTxParams& params) : TPipeView(params.pipeKey)
 {
+    mControlBlock.setKey(QString::number(params.pipeKey) +QString("_control"));
+    mDataBlock.setKey(QString::number(params.pipeKey) +QString("_data"));
+
     //---
     for(auto k = 0; k < TPipeView::TControlBlock::MaxRxNum; ++k) {
         mSem[k] = 0;
@@ -576,6 +579,9 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
                                                                 mRxGblIdx(0),
                                                                 mRxSem(0)
 {
+    mControlBlock.setKey(QString::number(params.pipeKey) +QString("_control"));
+    mDataBlock.setKey(QString::number(params.pipeKey) +QString("_data"));
+
     //---
     if(!activatePipe(params))
         return;
