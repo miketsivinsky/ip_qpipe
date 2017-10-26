@@ -195,22 +195,19 @@ void TPipeViewRxNotifier::run()
             return;
 
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
-        if(mPipeViewRx.key() == 1502) {
-            qDebug() << "I: [TPipeViewRxNotifier] txEvent received; key" << mPipeViewRx.key() << "txEvent:" << txEvent;
-        }
 
         //--- IP_QPIPE_LIB::TxConnected
         if(txEvent == IP_QPIPE_LIB::TxConnected) {
            if(mPipeViewRx.mDataBlockData) {
                 mPipeViewRx.dataBlockOff();
-                qDebug() << "W: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxConnected received, but DataBlock is active; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+                qDebug() << "W: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxConnected received, but DataBlock is ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
            }
            if(mPipeViewRx.dataBlockOn()) {
                mPipeViewRx.syncRxGblIdx();
                mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
-               qDebug() << "I: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxConnected received; dataBlockOn(); key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+               qDebug() << "I: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxConnected received; dataBlock ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
            } else {
-               qDebug() << "E: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxConnected received; dataBlockOn(); key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+               qDebug() << "E: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxConnected received; dataBlock ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
                return;
            }
         }
@@ -220,63 +217,33 @@ void TPipeViewRxNotifier::run()
             if(mPipeViewRx.dataBlockOn()) {
                 mPipeViewRx.syncRxGblIdx();
                 mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
-                qDebug() << "W: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxTransfer received; dataBlockOn(); key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+                qDebug() << "W: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxTransfer received; dataBlock ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
             } else {
-                qDebug() << "E: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxTransfer received; dataBlockOn(); key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+                qDebug() << "E: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxTransfer received; dataBlock ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
                 return;
             }
         }
 
         if(txEvent == IP_QPIPE_LIB::TxDisconnected) {
             mPipeViewRx.dataBlockOff();
-            qDebug() << "I: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxDisconnected received; dataBlockOff(); key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+            qDebug() << "I: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxDisconnected received; dataBlock OFF; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
         }
 
         if((txEvent == IP_QPIPE_LIB::TxError) && mPipeViewRx.mDataBlockData) {
             mPipeViewRx.dataBlockOff();
-            qDebug() << "W: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxError received; dataBlockOff(); key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+            qDebug() << "W: [TPipeViewRxNotifier] IP_QPIPE_LIB::TxError received; dataBlock OFF; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
         }
 
-#if 0
-        //--- init DataBlock (if not initialized), reset mRxGblIdx and mRxSem
-        if(!mPipeViewRx.mDataBlockData) {
-            if((txEvent == IP_QPIPE_LIB::TxConnected) || (txEvent == IP_QPIPE_LIB::TxTransfer)) {
-                if(mPipeViewRx.attachDataBlock(QSharedMemory::ReadOnly) && mPipeViewRx.getDataBlockDataPtr()) {
-                    mPipeViewRx.syncRxGblIdx();
-                    mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
-                    qDebug() << "I: [TPipeViewRxNotifier] DataBlock attached; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
-                } else {
-                    #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
-                        qDebug() << "E: [TPipeViewRxNotifier] DataBlock attach error; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
-                    #endif
-                    return;
-                }
-            }
-        } else {
-            if(txEvent == IP_QPIPE_LIB::TxConnected) {
-                // txPipe view was created before, than txPipe was unconnedcted, than rxPipe (this) was created
-                // (with already existed DataBlock) and now txPipe view connect again
-                mPipeViewRx.syncRxGblIdx();
-                mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
-            }
-        }
-#endif
-
-        //mPipeViewRx.mDataBlock.lock(QString("1502_data"));
-        //mPipeViewRx.mDataBlock.unlock(QString("1502_data"));
+        /*DEBUG*/ //mPipeViewRx.mDataBlock.lock(QString("1502_data"));
+        /*DEBUG*/ //mPipeViewRx.mDataBlock.unlock(QString("1502_data"));
 
         //--- send notify (callback)
         if(mPipeViewRx.mNotifyFunc) {
             (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
         }
 
-        //--- debug
-        if(txEvent == IP_QPIPE_LIB::TxTransfer) {
-            //qDebug() << "[slon 0]" << mPipeViewRx.mControlBlockCache.txGblIdx;
-        }
         //--- rx semaphore singaling
         if((txEvent == IP_QPIPE_LIB::TxTransfer) && mPipeViewRx.isRxSemSignalEna()) {
-            //qDebug() << "   [slon 1] ---" << mPipeViewRx.mControlBlockCache.txGblIdx;
             mPipeViewRx.mRxSem.release();
         }
     }
@@ -523,8 +490,8 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
     }
 
     // 3. lock control & data
-    TLock lockControlBlock(mControlBlock, true, 1);
-    TLock lockDataBlock(mDataBlock, true, 1);
+    TLock lockControlBlock(mControlBlock);
+    TLock lockDataBlock(mDataBlock);
 
     // 4. get chunk & write data
     TControlBlock& controlBlockView = getControlBlockView();
@@ -630,18 +597,6 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
     //---
     if(!activatePipe(params))
         return;
-
-#if 0
-    //---
-    if(mDataBlock.attach(QSharedMemory::ReadOnly)) {
-        if(!getDataBlockDataPtr()) {
-            return;
-        }
-    } else {
-        // not error - tx not started yet
-        //qDebug() << "slon" << id();
-    }
-#endif
 
     //---
     mNotifier.setKeyPipeId(id());
