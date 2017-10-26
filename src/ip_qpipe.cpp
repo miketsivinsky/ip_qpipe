@@ -478,9 +478,11 @@ bool TPipeViewTx::activateDataBlock(IP_QPIPE_LIB::TPipeTxParams& params)
             return false;
         if(!getDataBlockDataPtr())
             return false;
+        qDebug() << "W: [tx pipe] DataBlock exist - attached; key:" << key();
     } else { //--- data pipe not exist, viewTx created
         if(!getDataBlockDataPtr())
             return false;
+        qDebug() << "I: [tx pipe] DataBlock not exist - created; key:" << key();
     }
     return true;
 }
