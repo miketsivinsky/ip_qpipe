@@ -222,6 +222,9 @@ void TPipeViewRxNotifier::run()
             }
         }
 
+        //mPipeViewRx.mDataBlock.lock(QString("1502_data"));
+        //mPipeViewRx.mDataBlock.unlock(QString("1502_data"));
+
         //--- send notify (callback)
         if(mPipeViewRx.mNotifyFunc) {
             (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
@@ -244,9 +247,9 @@ void TPipeViewRxNotifier::run()
 
 //------------------------------------------------------------------------------
 TPipeView::TPipeView(unsigned pipeKey) :
-                                          mControlBlock(pipeKey),
+                                          mControlBlock(),
                                           mControlBlockData(0),
-                                          mDataBlock(pipeKey),
+                                          mDataBlock(),
                                           mDataBlockData(0),
                                           mStatus(IP_QPIPE_LIB::NotInit),
                                           mLastError(IP_QPIPE_LIB::NotInit),

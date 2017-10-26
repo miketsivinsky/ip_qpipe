@@ -12,21 +12,21 @@
 class TSharedMemory : public QSharedMemory
 {
     public:
-        TSharedMemory(unsigned pipeKey, QObject *parent = Q_NULLPTR) :
+        TSharedMemory(QObject *parent = Q_NULLPTR) :
                                                                        QSharedMemory(parent),
-                                                                       mPipeKey(pipeKey)
+                                                                       mKeyId(QString())
                                                                        {}
-        TSharedMemory(unsigned pipeKey, const QString &key, QObject *parent = Q_NULLPTR) :
-                                                                                           QSharedMemory(key, parent),
-                                                                                           mPipeKey(pipeKey)
-                                                                                           {}
+        TSharedMemory(const QString &keyId, QObject *parent = Q_NULLPTR) :
+                                                                       QSharedMemory(keyId, parent),
+                                                                       mKeyId(keyId)
+                                                                       {}
         bool isLockedByMe() { return d_func()->lockedByMe; }
-        bool lock(unsigned pipeKey = 0);
-        bool unlock(unsigned pipeKey = 0);
+        bool lock(const QString& keyId = QString());
+        bool unlock(const QString& keyId = QString());
         //bool attach(QSharedMemory::AccessMode mode);
 
     protected:
-        unsigned mPipeKey;
+        QString mKeyId;
 
         inline QSharedMemoryPrivate* d_func() { return reinterpret_cast<QSharedMemoryPrivate*>(qGetPtrHelper(d_ptr)); }
 };

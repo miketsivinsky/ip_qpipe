@@ -6,9 +6,9 @@
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-bool TSharedMemory::lock(unsigned pipeKey)
+bool TSharedMemory::lock(const QString& keyId)
 {
-    if(pipeKey == mPipeKey) {
+    if(keyId == key()) {
         qDebug() << "I: lock entry key:" << key();
     }
 
@@ -30,9 +30,9 @@ bool TSharedMemory::lock(unsigned pipeKey)
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-bool TSharedMemory::unlock(unsigned pipeKey)
+bool TSharedMemory::unlock(const QString& keyId)
 {
-    if(pipeKey == mPipeKey) {
+    if(keyId == key()) {
         qDebug() << "I: unlock entry key:" << key();
     }
 
