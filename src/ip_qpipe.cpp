@@ -592,7 +592,7 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
                                                                 mRxSem(0)
 {
     mControlBlock.setKey(QString::number(params.pipeKey) + QString("_control"));
-    mDataBlock.setKey(QString::number(params.pipeKey) + QString("_data"));
+    //mDataBlock.setKey(QString::number(params.pipeKey) + QString("_data"));
 
     //---
     if(!activatePipe(params))
