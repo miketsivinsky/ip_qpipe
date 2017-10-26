@@ -195,6 +195,9 @@ void TPipeViewRxNotifier::run()
             return;
 
         IP_QPIPE_LIB::TTxEvent txEvent = mPipeViewRx.whatTxEvent();
+        if(mPipeViewRx.key() == 1502) {
+            qDebug() << "I: [TPipeViewRxNotifier::run] txEvent received; key" << mPipeViewRx.key() << "txEvent:" << txEvent;
+        }
 
         //--- init DataBlock (if not initialized), reset mRxGblIdx and mRxSem
         if(!mPipeViewRx.mDataBlockData) {
@@ -202,10 +205,10 @@ void TPipeViewRxNotifier::run()
                 if(mPipeViewRx.attachDataBlock(QSharedMemory::ReadOnly) && mPipeViewRx.getDataBlockDataPtr()) {
                     mPipeViewRx.syncRxGblIdx();
                     mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
-                    qDebug() << "[INFO] [TPipeViewRxNotifier] DataBlock attached" << mPipeViewRx.id();
+                    qDebug() << "I: [TPipeViewRxNotifier] DataBlock attached; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
                 } else {
                     #if defined(IP_QPIPE_PRINT_DEBUG_ERROR)
-                        qDebug() << "[ERROR] [TPipeViewRxNotifier] DataBlock attach error";
+                        qDebug() << "E: [TPipeViewRxNotifier] DataBlock attach error; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
                     #endif
                     return;
                 }
@@ -215,14 +218,7 @@ void TPipeViewRxNotifier::run()
                 // txPipe view was created before, than txPipe was unconnedcted, than rxPipe (this) was created
                 // (with already existed DataBlock) and now txPipe view connect again
                 mPipeViewRx.syncRxGblIdx();
-
-                if(mPipeViewRx.key() == 1502) {
-                    qDebug() << "[DEBUG] cmd pipe read notifier mRxSem.acquire (before)" << mPipeViewRx.mRxSem.available();
-                }
                 mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
-                if(mPipeViewRx.key() == 1502) {
-                    qDebug() << "[DEBUG] cmd pipe read notifier mRxSem.acquire (after)" << mPipeViewRx.mRxSem.available();
-                }
             }
         }
 
@@ -258,9 +254,7 @@ TPipeView::TPipeView(unsigned pipeKey) :
                                           mKey(pipeKey)
 {
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        qDebug() << "[INFO] [TPipeView constructor]   key:" << key()
-                                                 << "ControlBlock error:" << mControlBlock.error()
-                                                 << "DataBlock error:"    << mDataBlock.error();
+        qDebug() << "[INFO] [TPipeView constructor]   key:" << key();
     #endif
 }
 
@@ -397,10 +391,10 @@ bool TPipeViewTx::activatePipe(IP_QPIPE_LIB::TPipeTxParams& params)
             return false;
         if((mLastError = mStatus = TControlBlock::attachTxView(getControlBlockView(),chunkSize, chunkNum)) != IP_QPIPE_LIB::Ok)
             return false;
-        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
         params.isCreated = false;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            // qDebug() << "[INFO] [tx][attached] key:" << key();
+            qDebug() << "I: [tx pipe] attached; key:" << key();
+            /*DEBUG*/ TControlBlock::printInfo(getControlBlockView());
         #endif
     } else { //--- pipe not exist, viewTx created
         if(!getControlBlockDataPtr())
@@ -410,9 +404,9 @@ bool TPipeViewTx::activatePipe(IP_QPIPE_LIB::TPipeTxParams& params)
             return false;
         TControlBlock::initTxView(getControlBlockView(),chunkSize, chunkNum);
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            // qDebug() << "[INFO] [tx][created] key:" << key();
+            qDebug() << "I: [tx pipe] created; key:" << key();
+            /*DEBUG*/ TControlBlock::printInfo(getControlBlockView());
         #endif
-        /*DEBUG*/ // TControlBlock::printInfo(getControlBlockView());
         params.isCreated = true;
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
@@ -461,8 +455,6 @@ unsigned TPipeViewTx::notifyRx(const TPipeView::TControlBlock& controlBlock)
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTransfer)
 {
-    qDebug() << "[DEBUG] [TPipeViewTx::sendData] (begin) key:" << key();
-
     // 0. check pipe ok
     if(!isPipeOk()) {
         return mStatus;
@@ -509,8 +501,6 @@ IP_QPIPE_LIB::TStatus TPipeViewTx::sendData(IP_QPIPE_LIB::TPipeTxTransfer& txTra
     // 7. only for debug purposes, not need for real work
     txTransfer.txBufIdx = controlBlockView.txBufIdx;
     txTransfer.txGblIdx = controlBlockView.txGblIdx;
-
-    qDebug() << "[DEBUG] [TPipeViewTx::sendData] (end) key:" << key();
 
     return mLastError;
 }
@@ -605,8 +595,6 @@ TPipeViewRx::TPipeViewRx(IP_QPIPE_LIB::TPipeRxParams& params) : TPipeView(params
     syncRxGblIdx();
     //mControlBlockCache = getControlBlockView(); // not need, because mControlBlockCache read in the 'syncRxGblIdx' above
 
-    qDebug() << "[DEBUG] rx pipe:" << key() << "txGblIdx:" << mControlBlockCache.txGblIdx;
-
     params.pipeId   = id();
     params.pipeInfo = mControlBlockCache;
     mNotifier.start();
@@ -632,7 +620,7 @@ TPipeViewRx::~TPipeViewRx()
 
     TQtMutexGuard::TLocker lock(mInstanceGuard);
     #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-        qDebug() << "[INFO] [TPipeViewRx destructor] key:" << key() << "id:" << id() << QThread::currentThreadId();
+        qDebug() << "I: [TPipeViewRx destructor] key:" << key() << "id:" << id(); // << "thread id:" << QThread::currentThreadId();
     #endif
 }
 
@@ -658,7 +646,7 @@ bool TPipeViewRx::activatePipe(IP_QPIPE_LIB::TPipeRxParams& params)
             return false;
         params.isCreated = false;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [rx][attached] key:" << key() << "id:" << id();
+            qDebug() << "I: [rx pipe] attached; key:" << key() << "id:" << id();
         #endif
     } else { //--- pipe not exist, viewRx created
         if(!getControlBlockDataPtr())
@@ -668,7 +656,7 @@ bool TPipeViewRx::activatePipe(IP_QPIPE_LIB::TPipeRxParams& params)
         mId = 0;
         params.isCreated = true;
         #if defined(IP_QPIPE_PRINT_DEBUG_INFO)
-            qDebug() << "[INFO] [rx][created] key:" << key() << "id:" << id();
+            qDebug() << "I: [rx pipe] created; key:" << key() << "id:" << id();
         #endif
         mLastError = mStatus = IP_QPIPE_LIB::Ok;
     }
@@ -746,27 +734,8 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
     // 4. correct RxSem signal number
     int32_t signalSemDelta = mRxSem.available() - idxNormDelta;
 
-    //---
-    if(key() == 1502) {
-        qDebug() << "[DEBUG] cmd pipe read info (begin)";
-        qDebug() << "[DEBUG] txGblIdx    :  " << mControlBlockCache.txGblIdx;
-        qDebug() << "[DEBUG] rxGblIdx    :  " << mRxGblIdx;
-        qDebug() << "[DEBUG] idxDelta    :  " << idxDelta;
-        qDebug() << "[DEBUG] idxNormDelta:  " << idxNormDelta;
-        qDebug() << "[DEBUG] RxSem avail.:  " << mRxSem.available();
-        qDebug() << "[DEBUG] signalSemDelta:" << signalSemDelta;
-        qDebug() << "[DEBUG] cmd pipe read info (end)";
-    }
-    //---
-
     if(signalSemDelta > 0) {
-        if(key() == 1502) {
-            qDebug() << "[DEBUG] cmd pipe read mRxSem.acquire (before)";
-        }
         mRxSem.acquire(signalSemDelta);
-        if(key() == 1502) {
-            qDebug() << "[DEBUG] cmd pipe read mRxSem.acquire (after)";
-        }
     }
 
     // 5. advance "local" (buf) rx idx
