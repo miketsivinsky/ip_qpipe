@@ -705,7 +705,7 @@ bool TPipeViewRx::dataBlockOn()
     return dataBlockOnNoLock();
 }
 
-//#define DEBUG_DATA_BLOCK_OFF
+#define DEBUG_DATA_BLOCK_OFF
 //------------------------------------------------------------------------------
 bool TPipeViewRx::dataBlockOff()
 {
