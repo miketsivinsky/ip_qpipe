@@ -674,10 +674,8 @@ bool TPipeViewRx::activatePipe(IP_QPIPE_LIB::TPipeRxParams& params)
 }
 
 //------------------------------------------------------------------------------
-bool TPipeViewRx::dataBlockOn()
+bool TPipeViewRx::dataBlockOnNoLock()
 {
-    //TQtMutexGuard::TLocker lock(mInstanceGuard); // if need use another lock, there is deadlock when lock(mInstanceGuard) used
-
     mDataBlockData = 0;
     mDataBlock.setKey(QString::number(key()) + QString("_data"));
     if(!attachDataBlock(QSharedMemory::ReadOnly))
@@ -688,14 +686,34 @@ bool TPipeViewRx::dataBlockOn()
 }
 
 //------------------------------------------------------------------------------
-bool TPipeViewRx::dataBlockOff()
+bool TPipeViewRx::dataBlockOffNoLock(bool semReset)
 {
-    //TQtMutexGuard::TLocker lock(mInstanceGuard); // if need use another lock, there is deadlock when lock(mInstanceGuard) used
-
+    if(semReset) {
+        mRxSem.acquire(mRxSem.available());
+    }
     mDataBlockData = 0;
     mDataBlock.setKey(QString());
     return true;
 }
+
+//------------------------------------------------------------------------------
+bool TPipeViewRx::dataBlockOn()
+{
+    TQtMutexGuard::TLocker lock(mDataBlockGuard);
+    return dataBlockOnNoLock();
+}
+
+//#define DEBUG_DATA_BLOCK_OFF
+//------------------------------------------------------------------------------
+bool TPipeViewRx::dataBlockOff()
+{
+    #if !defined(DEBUG_DATA_BLOCK_OFF)
+        mRxSem.acquire(mRxSem.available());
+    #endif
+    TQtMutexGuard::TLocker lock(mDataBlockGuard);
+    return dataBlockOffNoLock(false);
+}
+
 
 //------------------------------------------------------------------------------
 bool TPipeViewRx::isRxSemSignalEna()

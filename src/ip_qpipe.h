@@ -201,6 +201,8 @@ class TPipeViewRx : public TPipeView
 
         bool dataBlockOn();
         bool dataBlockOff();
+        bool dataBlockOnNoLock();
+        bool dataBlockOffNoLock(bool semReset = true);
 
         int                               mId;
         TPipeViewRxNotifier               mNotifier;
@@ -208,6 +210,7 @@ class TPipeViewRx : public TPipeView
         uint32_t                          mRxGblIdx;
         QSemaphore                        mRxSem;
         TQtMutexGuard                     mInstanceGuard;
+        TQtMutexGuard                     mDataBlockGuard;
 };
 
 //------------------------------------------------------------------------------
