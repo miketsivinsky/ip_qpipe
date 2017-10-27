@@ -16,6 +16,8 @@
 #include "tqueue.h"
 #include "ip_qpipe_def.h"
 
+#include "shared_mem.h"
+
 #define IP_QPIPE_PRINT_DEBUG_INFO
 #define IP_QPIPE_PRINT_DEBUG_ERROR
 
@@ -107,12 +109,30 @@ class TPipeView
         class TLock
         {
             private:
-                QSharedMemory& mSharedMem;
+                TSharedMemory& mSharedMem;
                 bool           mLocked;
 
+                bool           mEnaTrace;
+                int            mTraceId;
+
             public:
-                TLock(QSharedMemory& sharedMem) : mSharedMem(sharedMem), mLocked(sharedMem.lock()) {}
-                ~TLock() { mSharedMem.unlock(); }
+                TLock(TSharedMemory& sharedMem, bool enaTrace = false, int traceId = 0) :
+                    mSharedMem(sharedMem),
+                    mLocked(sharedMem.lock()),
+                    mEnaTrace(enaTrace),
+                    mTraceId(traceId)
+                {
+                    if(mEnaTrace) {
+                        qDebug() << "[DEBUG] TPipeView::TLock locked. key:" << mSharedMem.key() << "traceId:" << mTraceId;
+                    }
+                }
+                ~TLock()
+                {
+                    mSharedMem.unlock();
+                    if(mEnaTrace) {
+                        qDebug() << "[DEBUG] TPipeView::TLock unlocked. key:" << mSharedMem.key() << "traceId:" << mTraceId;
+                    }
+                }
                 bool isLocked() const { return mLocked; }
         };
 
@@ -125,11 +145,11 @@ class TPipeView
         TChunk getChunk(uint32_t idx);
 
         //---
-        QSharedMemory         mControlBlock;
+        TSharedMemory         mControlBlock;
         void*                 mControlBlockData;
 
         //---
-        QSharedMemory         mDataBlock;
+        TSharedMemory         mDataBlock;
         void*                 mDataBlockData;
 
         IP_QPIPE_LIB::TStatus mStatus;
@@ -177,6 +197,12 @@ class TPipeViewRx : public TPipeView
         bool activatePipe(IP_QPIPE_LIB::TPipeRxParams& params);
         bool isRxSemSignalEna();
         uint32_t computeRxBufIdx(uint32_t idxNormDelta) const;
+        void syncRxGblIdx(uint32_t offset = 0);
+
+        bool dataBlockOn();
+        bool dataBlockOff();
+        bool dataBlockOnNoLock();
+        bool dataBlockOffNoLock(bool semReset = true);
 
         int                               mId;
         TPipeViewRxNotifier               mNotifier;
@@ -184,6 +210,7 @@ class TPipeViewRx : public TPipeView
         uint32_t                          mRxGblIdx;
         QSemaphore                        mRxSem;
         TQtMutexGuard                     mInstanceGuard;
+        TQtMutexGuard                     mDataBlockGuard;
 };
 
 //------------------------------------------------------------------------------
