@@ -841,10 +841,6 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj
 
     mLastError = IP_QPIPE_LIB::Ok;
 
-    if((mRxSem.available() < 4) && mDataBlockData) {
-        return mLastError;
-    }
-
     // 1. wait for signal
     bool semStatus = mRxSem.tryAcquire(1,timeout);
     TQtMutexGuard::TLocker threadLockDataBlock(mDataBlockGuard);
