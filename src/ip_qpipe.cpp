@@ -226,7 +226,9 @@ void TPipeViewRxNotifier::run()
 
         if(txEvent == IP_QPIPE_LIB::TxDisconnected) {
             mPipeViewRx.dataBlockOff();
-            qDebug() << "I: [rx pipe] TxDisconnected received; dataBlock OFF; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
+            /*DEBUG*/ mPipeViewRx.mControlBlockCache = mPipeViewRx.getControlBlockView(); // not quarded
+            qDebug() << "I: [rx pipe] TxDisconnected received; dataBlock OFF; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id()
+                     << "txGblIdx:" << mPipeViewRx.mControlBlockCache.txGblIdx << "rxGblIdx:" << mPipeViewRx.mRxGblIdx;
         }
 
         if((txEvent == IP_QPIPE_LIB::TxError) && mPipeViewRx.mDataBlockData) {
