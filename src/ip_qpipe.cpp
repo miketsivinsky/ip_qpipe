@@ -215,7 +215,7 @@ void TPipeViewRxNotifier::run()
         //--- IP_QPIPE_LIB::TxTransfer
         if((txEvent == IP_QPIPE_LIB::TxTransfer) && !mPipeViewRx.mDataBlockData) {
             if(mPipeViewRx.dataBlockOn()) {
-                mPipeViewRx.syncRxGblIdx();
+                mPipeViewRx.syncRxGblIdx(1);
                 mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
                 qDebug() << "W: [rx pipe] TxTransfer received; dataBlock ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
             } else {
@@ -720,10 +720,10 @@ IP_QPIPE_LIB::TTxEvent TPipeViewRx::whatTxEvent()
 }
 
 //------------------------------------------------------------------------------
-void TPipeViewRx::syncRxGblIdx()
+void TPipeViewRx::syncRxGblIdx(uint32_t offset)
 {
     mControlBlockCache = getControlBlockView(); // not quarded
-    mRxGblIdx = mControlBlockCache.txGblIdx;
+    mRxGblIdx = mControlBlockCache.txGblIdx - offset;
 }
 
 //------------------------------------------------------------------------------
