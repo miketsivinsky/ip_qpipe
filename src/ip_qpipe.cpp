@@ -752,7 +752,7 @@ void TPipeViewRx::syncRxGblIdx(uint32_t offset)
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTransfer, int timeout)
 {
-    TQtMutexGuard::TLocker lock(mInstanceGuard);
+    TQtMutexGuard::TLocker threadLock(mInstanceGuard);
 
     // 0. check pipe ok
     if(!isPipeOk()) {
@@ -762,18 +762,25 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
     mLastError = IP_QPIPE_LIB::Ok;
 
     // 1. wait for signal
-    if(!mRxSem.tryAcquire(1,timeout)) {
+    bool semStatus = mRxSem.tryAcquire(1,timeout);
+    TQtMutexGuard::TLocker threadLockDataBlock(mDataBlockGuard);
+    if(!mDataBlockData) {
+        mLastError = IP_QPIPE_LIB::RxPipeNotActive;
+        return mLastError;
+    }
+
+    if(!semStatus) {
         mLastError = mDataBlockData ? IP_QPIPE_LIB::TimeoutError : IP_QPIPE_LIB::TxPipeNotPresent;
         return mLastError;
     } else {
-         if(!isPipeOk()) {
-             return mStatus;
-         }
+        if(!isPipeOk()) {
+            return mStatus;
+        }
     }
 
     // 2. lock control & data
-    TLock lockControlBlock(mControlBlock);
-    TLock lockDataBlock(mDataBlock);
+    TLock processLockControlBlock(mControlBlock);
+    TLock processLockDataBlock(mDataBlock);
     mControlBlockCache = getControlBlockView();
 
     // 3. compute idxDelta & idxNormDelta ('normalized' to buf size)
@@ -825,7 +832,7 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransfer& rxTra
 //------------------------------------------------------------------------------
 IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj& rxTransfer, int timeout)
 {
-    TQtMutexGuard::TLocker lock(mInstanceGuard);
+    TQtMutexGuard::TLocker threadLock(mInstanceGuard);
 
     // 0. check pipe ok
     if(!isPipeOk()) {
@@ -839,7 +846,14 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj
     }
 
     // 1. wait for signal
-    if(!mRxSem.tryAcquire(1,timeout)) {
+    bool semStatus = mRxSem.tryAcquire(1,timeout);
+    TQtMutexGuard::TLocker threadLockDataBlock(mDataBlockGuard);
+    if(!mDataBlockData) {
+        mLastError = IP_QPIPE_LIB::RxPipeNotActive;
+        return mLastError;
+    }
+
+    if(!semStatus) {
         mLastError = mDataBlockData ? IP_QPIPE_LIB::TimeoutError : IP_QPIPE_LIB::TxPipeNotPresent;
         return mLastError;
     } else {
@@ -849,8 +863,8 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj
     }
 
     // 2. lock control & data
-    TLock lockControlBlock(mControlBlock);
-    TLock lockDataBlock(mDataBlock);
+    TLock processLockControlBlock(mControlBlock);
+    TLock processLockDataBlock(mDataBlock);
     mControlBlockCache = getControlBlockView();
 
     // 3. compute idxDelta & idxNormDelta ('normalized' to buf size)
