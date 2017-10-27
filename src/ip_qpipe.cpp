@@ -814,6 +814,10 @@ IP_QPIPE_LIB::TStatus TPipeViewRx::readData(IP_QPIPE_LIB::TPipeRxTransferFuncObj
 
     mLastError = IP_QPIPE_LIB::Ok;
 
+    if((mRxSem.available() < 4) && mDataBlockData) {
+        return mLastError;
+    }
+
     // 1. wait for signal
     if(!mRxSem.tryAcquire(1,timeout)) {
         mLastError = mDataBlockData ? IP_QPIPE_LIB::TimeoutError : IP_QPIPE_LIB::TxPipeNotPresent;
