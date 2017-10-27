@@ -239,7 +239,7 @@ void TPipeViewRxNotifier::run()
 
         //--- send notify (callback)
         if(mPipeViewRx.mNotifyFunc) {
-             mPipeViewRx.mControlBlockCache = getControlBlockView(); // not quarded
+             mPipeViewRx.mControlBlockCache = mPipeViewRx.getControlBlockView(); // not quarded
             (*mPipeViewRx.mNotifyFunc)(mPipeViewRx.key(),txEvent,mPipeViewRx.id(),mPipeViewRx.mControlBlockCache);
         }
 
