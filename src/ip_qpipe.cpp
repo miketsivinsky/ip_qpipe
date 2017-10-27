@@ -198,11 +198,13 @@ void TPipeViewRxNotifier::run()
 
         //--- IP_QPIPE_LIB::TxConnected
         if(txEvent == IP_QPIPE_LIB::TxConnected) {
+           TQtMutexGuard::TLocker lock(mPipeViewRx.mDataBlockGuard);
+
            if(mPipeViewRx.mDataBlockData) {
-                mPipeViewRx.dataBlockOff();
+                mPipeViewRx.dataBlockOffNoLock();
                 qDebug() << "W: [rx pipe] TxConnected received, but DataBlock is ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
            }
-           if(mPipeViewRx.dataBlockOn()) {
+           if(mPipeViewRx.dataBlockOnNoLock()) {
                mPipeViewRx.syncRxGblIdx();
                mPipeViewRx.mRxSem.acquire(mPipeViewRx.mRxSem.available());
                qDebug() << "I: [rx pipe] TxConnected received; dataBlock ON; key:" << mPipeViewRx.key() << "id:" << mPipeViewRx.id();
